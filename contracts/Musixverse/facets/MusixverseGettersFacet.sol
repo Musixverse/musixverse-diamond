@@ -1,4 +1,4 @@
-// contracts/MusixverseGettersFacet.sol
+// contracts/Musixverse/facets/MusixverseGettersFacet.sol
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
@@ -10,12 +10,11 @@ pragma solidity ^0.8.0;
 ████      ████  ████   ████      ████
 */
 
-import { AppStorage, TrackNFT, RoyaltyInfo } from "../libraries/LibAppStorage.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
+import { Counters } from "@openzeppelin/contracts/utils/Counters.sol";
+import { MusixverseEternalStorage, TrackNFT, RoyaltyInfo } from "../libraries/LibMusixverseEternalStorage.sol";
+import { MusixverseEternalStorageFacet } from "./MusixverseEternalStorageFacet.sol";
 
-contract MusixverseGettersFacet {
-	AppStorage internal s;
-
+contract MusixverseGettersFacet is MusixverseEternalStorageFacet {
 	using Counters for Counters.Counter;
 
 	/// @notice Return the universal name of the NFT

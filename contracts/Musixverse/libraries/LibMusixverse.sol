@@ -1,4 +1,4 @@
-// contracts/libraries/LibMusixverse.sol
+// contracts/Musixverse/libraries/LibMusixverse.sol
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.4;
 
@@ -13,14 +13,13 @@ pragma solidity ^0.8.4;
 import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { Counters } from "@openzeppelin/contracts/utils/Counters.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
-import { LibAppStorage, AppStorage, TrackNFT, RoyaltyInfo } from "./LibAppStorage.sol";
-import "../facets/MusixverseFacet.sol";
+import { LibMusixverseEternalStorage, MusixverseEternalStorage, TrackNFT, RoyaltyInfo } from "./LibMusixverseEternalStorage.sol";
+import { MusixverseFacet } from "../facets/MusixverseFacet.sol";
 
 library LibMusixverse {
 	using SafeMath for uint256;
 	using Counters for Counters.Counter;
 
-	// AppStorage storage s = LibAppStorage.diamondStorage();
 	function checkForMinting(
 		uint16 amount,
 		uint256 price,

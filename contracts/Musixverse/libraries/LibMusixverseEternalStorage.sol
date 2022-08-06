@@ -1,4 +1,4 @@
-// contracts/MusixverseEternalStorage.sol
+// contracts/Musixverse/libraries/LibMusixverseEternalStorage.sol
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
@@ -9,10 +9,11 @@ pragma solidity ^0.8.0;
 ████  ██  ████   ████ ████      ██████
 ████      ████  ████   ████      ████
 */
-// This contract is meant to declare any storage and is append-only. DO NOT modify old variables!
+
+/// Note: This contract is meant to declare any storage and is append-only. DO NOT modify old variables!
 
 import { LibDiamond } from "../../shared/libraries/LibDiamond.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
+import { Counters } from "@openzeppelin/contracts/utils/Counters.sol";
 
 /***********************************|
 |    Variables, structs, mappings   |
@@ -32,7 +33,7 @@ struct RoyaltyInfo {
 	uint256 percentage;
 }
 
-struct AppStorage {
+struct MusixverseEternalStorage {
 	string name;
 	string symbol;
 	string contractURI;
@@ -48,8 +49,8 @@ struct AppStorage {
 	mapping(uint256 => RoyaltyInfo[]) royalties;
 }
 
-library LibAppStorage {
-	function diamondStorage() internal pure returns (AppStorage storage ds) {
+library LibMusixverseEternalStorage {
+	function diamondStorage() internal pure returns (MusixverseEternalStorage storage ds) {
 		assembly {
 			ds.slot := 0
 		}

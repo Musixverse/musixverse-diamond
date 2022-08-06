@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: MIT
+// contracts/Musixverse/DiamondInit.sol
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
 import { LibDiamond } from "../shared/libraries/LibDiamond.sol";

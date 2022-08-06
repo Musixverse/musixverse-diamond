@@ -1,14 +1,11 @@
-// SPDX-License-Identifier: MIT
+// contracts/shared/libraries/LibDiamond.sol
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-/******************************************************************************\
-* Author: Nick Mudge <nick@perfectabstractions.com> (https://twitter.com/mudgen)
-* EIP-2535 Diamonds: https://eips.ethereum.org/EIPS/eip-2535
-/******************************************************************************/
 import { IDiamondCut } from "../interfaces/IDiamondCut.sol";
 
 // Remember to add the loupe functions from DiamondLoupeFacet to the diamond.
-// The loupe functions are required by the EIP2535 Diamonds standard
+// The loupe functions are required by the EIP2535 Diamond standard.
 
 library LibDiamond {
 	bytes32 constant DIAMOND_STORAGE_POSITION = keccak256("musixverse.diamond.storage");

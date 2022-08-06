@@ -1,4 +1,4 @@
-// contracts/MusixverseFacet.sol
+// contracts/Musixverse/facets/MusixverseFacet.sol
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
@@ -16,11 +16,11 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuar
 import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { Counters } from "@openzeppelin/contracts/utils/Counters.sol";
 import { LibDiamond } from "../../shared/libraries/LibDiamond.sol";
-import { AppStorage, Modifiers, TrackNFT, RoyaltyInfo } from "../libraries/LibAppStorage.sol";
-import { AppStorageFacet } from "./AppStorageFacet.sol";
+import { MusixverseEternalStorage, Modifiers, TrackNFT, RoyaltyInfo } from "../libraries/LibMusixverseEternalStorage.sol";
+import { MusixverseEternalStorageFacet } from "./MusixverseEternalStorageFacet.sol";
 import { LibMusixverse } from "../libraries/LibMusixverse.sol";
 
-contract MusixverseFacet is AppStorageFacet, ERC1155, Pausable, Modifiers {
+contract MusixverseFacet is MusixverseEternalStorageFacet, ERC1155, Pausable, Modifiers {
 	using SafeMath for uint256;
 	using Counters for Counters.Counter;
 

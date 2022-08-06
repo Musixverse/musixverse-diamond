@@ -1,4 +1,4 @@
-// contracts/MusixverseDiamond.sol
+// contracts/shared/MusixverseDiamond.sol
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
@@ -60,11 +60,11 @@ contract MusixverseDiamond {
 		}
 	}
 
-	event Received(address, uint256);
-
 	/***********************************|
     |           Receive Funds           |
     |__________________________________*/
+
+	event Received(address, uint256);
 
 	receive() external payable {
 		emit Received(msg.sender, msg.value);
