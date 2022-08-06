@@ -10,7 +10,7 @@ pragma solidity ^0.8.4;
 ████      ████  ████   ████      ████
 */
 
-import { RoyaltyInfo } from "../libraries/LibMusixverseEternalStorage.sol";
+import { RoyaltyInfo } from "../libraries/LibMusixverseAppStorage.sol";
 
 interface IMusixverseFacet {
 	/***********************************|

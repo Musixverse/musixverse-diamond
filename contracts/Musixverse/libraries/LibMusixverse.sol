@@ -13,26 +13,22 @@ pragma solidity ^0.8.4;
 import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { Counters } from "@openzeppelin/contracts/utils/Counters.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
-import { LibMusixverseEternalStorage, MusixverseEternalStorage, TrackNFT, RoyaltyInfo } from "./LibMusixverseEternalStorage.sol";
+import { LibMusixverseAppStorage, MusixverseAppStorage, TrackNftCreationData, TrackNFT, RoyaltyInfo } from "./LibMusixverseAppStorage.sol";
 import { MusixverseFacet } from "../facets/MusixverseFacet.sol";
 
 library LibMusixverse {
 	using SafeMath for uint256;
 	using Counters for Counters.Counter;
 
-	function checkForMinting(
-		uint16 amount,
-		uint256 price,
-		string calldata URIHash,
-		address[] calldata collaborators,
-		uint16[] calldata percentageContributions,
-		uint16 resaleRoyaltyPercentage
-	) public pure {
-		require(amount > 0, "No tokens to mint");
-		require(price > 0, "Price must be greater than 0");
-		require(bytes(URIHash).length != 0, "URIHash must be present");
-		require(collaborators.length == percentageContributions.length, "collaborators and percentageContributions must be the same length");
-		require(resaleRoyaltyPercentage >= 0, "resaleRoyaltyPercentage must be greater than or equal to 0");
+	function checkForMinting(TrackNftCreationData calldata data) public pure {
+		require(data.amount > 0, "No tokens to mint");
+		require(data.price > 0, "Price must be greater than 0");
+		require(bytes(data.URIHash).length != 0, "URIHash must be present");
+		require(
+			data.collaborators.length == data.percentageContributions.length,
+			"collaborators and percentageContributions must be the same length"
+		);
+		require(data.resaleRoyaltyPercentage >= 0, "resaleRoyaltyPercentage must be greater than or equal to 0");
 	}
 
 	function checkForRoyalties(address[] calldata collaborators, uint16[] calldata percentageContributions) public pure {
@@ -46,7 +42,7 @@ library LibMusixverse {
 
 	function isPastUnlockTimestamp(TrackNFT memory trackNFT) public view {
 		// Require that current time is past unlockTimestamp
-		require(block.timestamp > trackNFT.unlockTimestamp, "NFT isn't unlocked yet");
+		require(block.timestamp > trackNFT.unlockTimestamp, "LibMusixverse: Only callable on unlocked tokens");
 	}
 
 	function checkForSale(TrackNFT memory trackNFT, address prevOwner) public view {
@@ -74,44 +70,67 @@ library LibMusixverse {
 
 	function purchaseToken(
 		uint256 tokenId,
+		address payable referrer,
 		mapping(uint256 => TrackNFT) storage trackNFTs,
-		address payable PLATFORM_ADDRESS,
-		uint8 PLATFORM_FEE_PERCENTAGE,
 		Counters.Counter storage mxvLatestTokenId
 	) public {
+		MusixverseAppStorage storage s = LibMusixverseAppStorage.diamondStorage();
 		isValidTokenId(tokenId, mxvLatestTokenId);
 		// Fetch the songNFT
 		TrackNFT memory _trackNFT = trackNFTs[tokenId];
-		address _prevOwner = MusixverseFacet(PLATFORM_ADDRESS).ownerOf(tokenId);
+		address _prevOwner = MusixverseFacet(s.PLATFORM_ADDRESS).ownerOf(tokenId);
 		// Check that the trackNFT is available for sale
 		checkForSale(_trackNFT, _prevOwner);
 		// Transfer amounts
-		_distributeFunds(tokenId, _trackNFT, _prevOwner, PLATFORM_FEE_PERCENTAGE, payable(PLATFORM_ADDRESS), trackNFTs);
+		_distributeFunds(tokenId, referrer, _trackNFT, _prevOwner, trackNFTs);
 	}
 
 	function _distributeFunds(
 		uint256 tokenId,
+		address payable referrer,
 		TrackNFT memory trackNFT,
 		address prevOwner,
-		uint8 PLATFORM_FEE_PERCENTAGE,
-		address payable PLATFORM_ADDRESS,
 		mapping(uint256 => TrackNFT) storage trackNFTs
 	) internal {
-		// Deduct the platform fee
-		uint256 _platformFee = ((msg.value).mul(PLATFORM_FEE_PERCENTAGE)).div(100);
-		Address.sendValue(payable(PLATFORM_ADDRESS), _platformFee);
-		if (trackNFT.soldOnce) {
-			// Pay the artists _royaltyPercentage% of the transaction amount as royalty
-			uint256 _royaltyAmount = ((msg.value).mul(trackNFT.resaleRoyaltyPercentage)).div(100);
-			_distributeRoyalties(PLATFORM_ADDRESS, tokenId, _royaltyAmount);
-			// Pay the seller by sending remaining amount
-			uint256 _value = ((msg.value).mul(100 - (PLATFORM_FEE_PERCENTAGE + trackNFT.resaleRoyaltyPercentage))).div(100);
-			payable(prevOwner).transfer(_value);
+		MusixverseAppStorage storage s = LibMusixverseAppStorage.diamondStorage();
+		if (referrer == address(0)) {
+			// Deduct the platform fee
+			uint256 _platformFee = ((msg.value).mul(s.PLATFORM_FEE_PERCENTAGE)).div(100);
+			Address.sendValue(s.PLATFORM_ADDRESS, _platformFee);
+
+			if (trackNFT.soldOnce) {
+				// Pay the artists _royaltyPercentage% of the transaction amount as royalty
+				uint256 _royaltyAmount = ((msg.value).mul(trackNFT.resaleRoyaltyPercentage)).div(100);
+				_distributeRoyalties(s.PLATFORM_ADDRESS, tokenId, _royaltyAmount);
+				// Pay the seller by sending remaining amount
+				uint256 _value = ((msg.value).mul(100 - (s.PLATFORM_FEE_PERCENTAGE + trackNFT.resaleRoyaltyPercentage))).div(100);
+				payable(prevOwner).transfer(_value);
+			} else {
+				// Pay the remaining transaction amount to the artists
+				uint256 _value = ((msg.value).mul(100 - s.PLATFORM_FEE_PERCENTAGE)).div(100);
+				_distributeRoyalties(s.PLATFORM_ADDRESS, tokenId, _value);
+			}
 		} else {
-			// Pay the remaining transaction amount to the artists
-			uint256 _value = ((msg.value).mul(100 - PLATFORM_FEE_PERCENTAGE)).div(100);
-			_distributeRoyalties(PLATFORM_ADDRESS, tokenId, _value);
+			// Deduct platform fee and referral fee
+			uint256 _platformFee = ((msg.value).mul(s.PLATFORM_FEE_PERCENTAGE)).div(100);
+			uint256 _referralFee = ((_platformFee).mul(s.REFERRAL_CUT)).div(100);
+			Address.sendValue(referrer, _referralFee);
+			Address.sendValue(s.PLATFORM_ADDRESS, _platformFee - _referralFee);
+
+			if (trackNFT.soldOnce) {
+				// Pay the artists _royaltyPercentage% of the transaction amount as royalty
+				uint256 _royaltyAmount = ((msg.value).mul(trackNFT.resaleRoyaltyPercentage)).div(100);
+				_distributeRoyalties(s.PLATFORM_ADDRESS, tokenId, _royaltyAmount);
+				// Pay the seller by sending remaining amount
+				uint256 _value = ((msg.value).mul(100 - (s.PLATFORM_FEE_PERCENTAGE + trackNFT.resaleRoyaltyPercentage))).div(100);
+				payable(prevOwner).transfer(_value);
+			} else {
+				// Pay the remaining transaction amount to the artists
+				uint256 _value = ((msg.value).mul(100 - s.PLATFORM_FEE_PERCENTAGE)).div(100);
+				_distributeRoyalties(s.PLATFORM_ADDRESS, tokenId, _value);
+			}
 		}
+
 		if (!trackNFT.soldOnce) {
 			// Set soldOnce to true
 			trackNFT.soldOnce = true;

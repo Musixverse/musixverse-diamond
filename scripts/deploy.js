@@ -131,6 +131,35 @@ async function deployMusixverseGettersFacet() {
 	return musixverseGettersFacet.address;
 }
 
+async function deployMusixverseSettersFacet() {
+	const MusixverseSettersFacet = await ethers.getContractFactory("MusixverseSettersFacet");
+	const musixverseSettersFacet = await MusixverseSettersFacet.deploy();
+	await musixverseSettersFacet.deployed();
+	console.log(`\tMusixverseSettersFacet deployed: ${musixverseSettersFacet.address}`);
+
+	const selectors = getSelectors(musixverseSettersFacet);
+	const diamondCut = await ethers.getContractAt("IDiamondCut", musixverseDiamondAddress);
+	const tx = await diamondCut.diamondCut(
+		[
+			{
+				facetAddress: musixverseSettersFacet.address,
+				action: FacetCutAction.Add,
+				functionSelectors: selectors,
+			},
+		],
+		ethers.constants.AddressZero,
+		"0x",
+		{ gasLimit: 800000 }
+	);
+	console.log("\tMusixverseSettersFacet cut tx:", tx.hash);
+	const receipt = await tx.wait();
+	if (!receipt.status) {
+		throw Error(`MusixverseDiamond upgrade failed: ${tx.hash}`);
+	}
+	console.log("\tCompleted MusixverseGettersFacet diamond cut.\n");
+	return musixverseSettersFacet.address;
+}
+
 // We recommend this pattern to be able to use async/await everywhere and properly handle errors.
 if (require.main === module) {
 	deployMusixverseDiamond()
@@ -141,4 +170,4 @@ if (require.main === module) {
 		});
 }
 
-module.exports = { deployMusixverseDiamond, deployMusixverseFacet, deployMusixverseGettersFacet };
+module.exports = { deployMusixverseDiamond, deployMusixverseFacet, deployMusixverseGettersFacet, deployMusixverseSettersFacet };

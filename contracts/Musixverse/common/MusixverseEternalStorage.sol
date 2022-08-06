@@ -1,4 +1,4 @@
-// contracts/Musixverse/facets/MusixverseEternalStorageFacet.sol
+// contracts/Musixverse/common/MusixverseEternalStorage.sol
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
@@ -10,8 +10,8 @@ pragma solidity ^0.8.0;
 ████      ████  ████   ████      ████
 */
 
-import { MusixverseEternalStorage } from "../libraries/LibMusixverseEternalStorage.sol";
+import { MusixverseAppStorage } from "../libraries/LibMusixverseAppStorage.sol";
 
-contract MusixverseEternalStorageFacet {
-	MusixverseEternalStorage internal s;
+contract MusixverseEternalStorage {
+	MusixverseAppStorage internal s;
 }

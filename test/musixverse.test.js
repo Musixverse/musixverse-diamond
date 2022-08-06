@@ -1,7 +1,12 @@
 // test/Musixverse.js
 // Load dependencies
 const { getSelectors, FacetCutAction, removeSelectors, findAddressPositionInFacets } = require("../scripts/libraries/diamond.js");
-const { deployMusixverseDiamond, deployMusixverseFacet, deployMusixverseGettersFacet } = require("../scripts/deploy.js");
+const {
+	deployMusixverseDiamond,
+	deployMusixverseFacet,
+	deployMusixverseGettersFacet,
+	deployMusixverseSettersFacet,
+} = require("../scripts/deploy.js");
 const { expect, assert } = require("chai");
 const { ethers } = require("hardhat");
 const { mintTrack, mint3TokensOfTrack } = require("./utils/helpers");
@@ -11,21 +16,25 @@ describe("Musixverse Tests", function () {
 	let diamondAddress;
 	let musixverseFacetAddress;
 	let musixverseGettersFacetAddress;
+	let musixverseSettersFacetAddress;
 	let diamondCutFacet;
 	let diamondLoupeFacet;
 	let ownershipFacet;
 	let musixverseFacet;
 	let musixverseGettersFacet;
+	let musixverseSettersFacet;
 
 	before(async function () {
 		diamondAddress = await deployMusixverseDiamond();
 		musixverseFacetAddress = await deployMusixverseFacet();
 		musixverseGettersFacetAddress = await deployMusixverseGettersFacet();
+		musixverseSettersFacetAddress = await deployMusixverseSettersFacet();
 		diamondCutFacet = await ethers.getContractAt("DiamondCutFacet", diamondAddress);
 		diamondLoupeFacet = await ethers.getContractAt("DiamondLoupeFacet", diamondAddress);
 		ownershipFacet = await ethers.getContractAt("OwnershipFacet", diamondAddress);
 		musixverseFacet = await ethers.getContractAt("MusixverseFacet", diamondAddress);
 		musixverseGettersFacet = await ethers.getContractAt("MusixverseGettersFacet", diamondAddress);
+		musixverseSettersFacet = await ethers.getContractAt("MusixverseSettersFacet", diamondAddress);
 	});
 
 	describe("Contract Deployment and Ownership", function () {
@@ -76,7 +85,7 @@ describe("Musixverse Tests", function () {
 		});
 
 		it("Should update and return the correct empty contract URI", async function () {
-			await musixverseFacet.updateContractMetadataURI("");
+			await musixverseSettersFacet.updateContractURI("");
 			expect((await musixverseGettersFacet.contractURI()).toString()).to.equal("");
 		});
 	});
@@ -84,19 +93,19 @@ describe("Musixverse Tests", function () {
 	describe("Mint track NFT", function () {
 		it("Should batch mint an NFT", async function () {
 			const [owner, addr1] = await ethers.getSigners();
-			await mintTrack(musixverseFacet);
+			await mintTrack(musixverseFacet, addr1);
 
 			var balance = await musixverseFacet.balanceOf(addr1.address, 1);
 			expect(1).to.equal(Number(balance.toString()));
 
-			await mintTrack(musixverseFacet);
+			await mintTrack(musixverseFacet, addr1);
 			balance = await musixverseFacet.balanceOf(addr1.address, 2);
 			expect(1).to.equal(Number(balance.toString()));
 		});
 
 		it("Should batch mint 3 NFTs", async function () {
-			const [owner, addr1] = await ethers.getSigners();
-			await mint3TokensOfTrack(musixverseFacet);
+			const [owner, addr1, addr2] = await ethers.getSigners();
+			await mint3TokensOfTrack(musixverseFacet, addr1, addr2);
 
 			var balance = await musixverseFacet.balanceOf(addr1.address, 1);
 			expect(1).to.equal(Number(balance.toString()));
@@ -114,12 +123,13 @@ describe("Musixverse Tests", function () {
 		});
 
 		it("Should get correct token URI", async function () {
-			await mintTrack(musixverseFacet);
+			const [owner, addr1, addr2] = await ethers.getSigners();
+			await mintTrack(musixverseFacet, addr1);
 			expect((await musixverseFacet.uri(1)).toString()).to.equal(
 				(await musixverseGettersFacet.baseURI()) + "QmQQqbwJqzQqwfnjtsP1FwZQcYKroBiA5ppcEBc1fvPSTt"
 			);
 
-			await mint3TokensOfTrack(musixverseFacet);
+			await mint3TokensOfTrack(musixverseFacet, addr1, addr2);
 			expect((await musixverseFacet.uri(3)).toString()).to.equal(
 				(await musixverseGettersFacet.baseURI()) + "Qmbijgmi1APqH2UaMVPkwoAKyNiBEHUjap54s3MAifKta6"
 			);
@@ -129,7 +139,7 @@ describe("Musixverse Tests", function () {
 	describe("Royalties", function () {
 		it("Should return royalties for a token", async function () {
 			const [owner, addr1, addr2] = await ethers.getSigners();
-			await mint3TokensOfTrack(musixverseFacet);
+			await mint3TokensOfTrack(musixverseFacet, addr1, addr2);
 
 			const royalties = await musixverseFacet.getRoyaltyInfo(5);
 			expect((await royalties[0].recipient).toString()).to.equal(addr1.address);
@@ -143,7 +153,7 @@ describe("Musixverse Tests", function () {
 		it("Should update the price of a trackNFT", async () => {
 			// Success: Current owner updates the price
 			const [owner, addr1, addr2] = await ethers.getSigners();
-			await mintTrack(musixverseFacet);
+			await mintTrack(musixverseFacet, addr1);
 
 			const _tokenId = 1;
 			var _trackNFT = await musixverseGettersFacet.trackNFTs(_tokenId);
@@ -168,7 +178,7 @@ describe("Musixverse Tests", function () {
 	describe("Toggle onSale attribute", async () => {
 		it("Should toggle the onSale attribute", async () => {
 			const [owner, addr1, addr2] = await ethers.getSigners();
-			await mintTrack(musixverseFacet);
+			await mintTrack(musixverseFacet, addr1);
 
 			// Success: Current owner toggles the onSale attribute
 			const _tokenId = 1;
@@ -193,7 +203,7 @@ describe("Musixverse Tests", function () {
 			var balance;
 
 			balance = await ethers.provider.getBalance(musixverseFacet.address);
-			console.log("\tBalance of contract:", ethers.utils.formatEther(balance));
+			console.log("\n\tBalance of contract:", ethers.utils.formatEther(balance));
 
 			balance = await ethers.provider.getBalance(addr1.address);
 			console.log("\n\tInitial balance of artist 1 (" + addr1.address + ") :", ethers.utils.formatEther(balance));
@@ -206,7 +216,7 @@ describe("Musixverse Tests", function () {
 			console.log("\tMinting 3 copies of NFT...");
 
 			// addr1 and addr2 are the collaborators. addr1 is the minter
-			await mint3TokensOfTrack(musixverseFacet);
+			await mint3TokensOfTrack(musixverseFacet, addr1, addr2);
 
 			console.log("\t-----------------------------------------------------------------------------------------------------------------\n");
 
@@ -275,6 +285,92 @@ describe("Musixverse Tests", function () {
 			console.log("\tInitial balance of buyer after 2nd purchase:", ethers.utils.formatEther(balance));
 
 			console.log("\n\tOwner of NFT id", _tokenId, "after 2nd purchase:", (await musixverseFacet.ownerOf(_tokenId)).toString());
+		});
+	});
+
+	describe("Purchase Referred NFT", function () {
+		it("Should purchase an NFT that a collector shares/refers", async function () {
+			const [owner, addr1, addr2, addr3, addr4, addr5, addr6, addr7, addr8] = await ethers.getSigners();
+			var balance;
+
+			balance = await ethers.provider.getBalance(musixverseFacet.address);
+			console.log("\n\tBalance of contract:", ethers.utils.formatEther(balance));
+
+			balance = await ethers.provider.getBalance(addr5.address);
+			console.log("\n\tInitial balance of artist 1 (" + addr5.address + ") :", ethers.utils.formatEther(balance));
+			balance = await ethers.provider.getBalance(addr6.address);
+			console.log("\tInitial balance of artist 2 (" + addr6.address + ") :", ethers.utils.formatEther(balance));
+			balance = await ethers.provider.getBalance(addr7.address);
+			console.log("\tInitial balance of sharer/referrer (" + addr7.address + ") :", ethers.utils.formatEther(balance));
+			balance = await ethers.provider.getBalance(addr8.address);
+			console.log("\tInitial balance of buyer (" + addr8.address + ") :", ethers.utils.formatEther(balance));
+
+			console.log("\n\t-----------------------------------------------------------------------------------------------------------------");
+			console.log("\tMinting 3 copies of NFT...");
+
+			// addr5 and addr6 are the collaborators. addr5 is the minter
+			await mint3TokensOfTrack(musixverseFacet, addr5, addr6);
+
+			console.log("\t-----------------------------------------------------------------------------------------------------------------\n");
+
+			balance = await ethers.provider.getBalance(addr5.address);
+			console.log("\tBalance of artist 1 after minting NFTs:", ethers.utils.formatEther(balance));
+			balance = await ethers.provider.getBalance(addr6.address);
+			console.log("\tBalance of artist 2 after minting NFTs:", ethers.utils.formatEther(balance));
+			balance = await ethers.provider.getBalance(addr7.address);
+			console.log("\tBalance of sharer/referrer after minting NFTs:", ethers.utils.formatEther(balance));
+			balance = await ethers.provider.getBalance(addr8.address);
+			console.log("\tBalance of buyer after minting NFTs:", ethers.utils.formatEther(balance));
+
+			const _tokenId = 20;
+			console.log("\n\tOwner of NFT id", _tokenId, "before purchase:", (await musixverseFacet.ownerOf(_tokenId)).toString());
+
+			console.log("\n\t-----------------------------------------------------------------------------------------------------------------\n");
+
+			var _trackNFT = await musixverseGettersFacet.trackNFTs(_tokenId);
+			await musixverseFacet.connect(addr8).purchaseReferredTrackNFT(_tokenId, addr7.address, { value: _trackNFT.price, gasLimit: 2000000 });
+
+			balance = await ethers.provider.getBalance(musixverseFacet.address);
+			console.log("\tBalance of contract after NFT purchase:", ethers.utils.formatEther(balance));
+
+			balance = await ethers.provider.getBalance(addr5.address);
+			console.log("\n\tBalance of artist 1 after NFT purchase:", ethers.utils.formatEther(balance));
+			balance = await ethers.provider.getBalance(addr6.address);
+			console.log("\tBalance of artist 2 after NFT purchase:", ethers.utils.formatEther(balance));
+			balance = await ethers.provider.getBalance(addr7.address);
+			console.log("\tBalance of sharer/referrer after NFT purchase:", ethers.utils.formatEther(balance));
+			balance = await ethers.provider.getBalance(addr8.address);
+			console.log("\tBalance of buyer after NFT purchase:", ethers.utils.formatEther(balance));
+
+			console.log("\n\tOwner of NFT id", _tokenId, "after purchase:", (await musixverseFacet.ownerOf(_tokenId)).toString());
+		});
+	});
+
+	describe("Update Platform Fee Percentage", async () => {
+		it("Should update the platform fee percentage", async () => {
+			const feePercentage = await musixverseGettersFacet.PLATFORM_FEE_PERCENTAGE();
+			assert.equal(feePercentage, 1);
+
+			await musixverseSettersFacet.updatePlatformFeePercentage(5);
+
+			const updatedFeePercentage = await musixverseGettersFacet.PLATFORM_FEE_PERCENTAGE();
+			assert.equal(updatedFeePercentage, 5);
+		});
+
+		it("Should not update platform fee percentage if not called by owner", async () => {
+			const [owner, addr1] = await ethers.getSigners();
+			// Failure: An address other than the contract owner tries to update the platform fee percentage
+			expect(musixverseSettersFacet.connect(addr1).updatePlatformFeePercentage(3)).to.be.revertedWith("LibDiamond: Must be contract owner");
+
+			const feePercentage = await musixverseGettersFacet.PLATFORM_FEE_PERCENTAGE();
+			assert.equal(feePercentage, 5);
+		});
+
+		it("Should revert the platform fee percentage back to 1", async () => {
+			await musixverseSettersFacet.updatePlatformFeePercentage(1);
+
+			const updatedFeePercentage = await musixverseGettersFacet.PLATFORM_FEE_PERCENTAGE();
+			assert.equal(updatedFeePercentage, 1);
 		});
 	});
 });

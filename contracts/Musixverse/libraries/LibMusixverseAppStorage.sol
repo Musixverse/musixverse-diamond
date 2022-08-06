@@ -1,4 +1,4 @@
-// contracts/Musixverse/libraries/LibMusixverseEternalStorage.sol
+// contracts/Musixverse/libraries/LibMusixverseAppStorage.sol
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
@@ -10,14 +10,24 @@ pragma solidity ^0.8.0;
 ████      ████  ████   ████      ████
 */
 
-/// Note: This contract is meant to declare any storage and is append-only. DO NOT modify old variables!
+/// @dev Note: This contract is meant to declare any storage and is append-only. DO NOT modify old variables!
 
-import { LibDiamond } from "../../shared/libraries/LibDiamond.sol";
 import { Counters } from "@openzeppelin/contracts/utils/Counters.sol";
 
 /***********************************|
 |    Variables, structs, mappings   |
 |__________________________________*/
+
+struct TrackNftCreationData {
+	uint16 amount;
+	uint256 price;
+	string URIHash;
+	address[] collaborators;
+	uint16[] percentageContributions;
+	uint16 resaleRoyaltyPercentage;
+	bool onSale;
+	uint256 unlockTimestamp;
+}
 
 struct TrackNFT {
 	uint256 price;
@@ -33,13 +43,15 @@ struct RoyaltyInfo {
 	uint256 percentage;
 }
 
-struct MusixverseEternalStorage {
+struct MusixverseAppStorage {
 	string name;
 	string symbol;
 	string contractURI;
 	string baseURI;
 	uint8 PLATFORM_FEE_PERCENTAGE;
-	address PLATFORM_ADDRESS;
+	address payable PLATFORM_ADDRESS;
+	// Cut percentage relative to PLATFORM_FEE_PERCENTAGE
+	uint8 REFERRAL_CUT;
 	Counters.Counter mxvLatestTokenId;
 	Counters.Counter totalTracks;
 	mapping(uint256 => string) mxvTokenHashes;
@@ -49,8 +61,8 @@ struct MusixverseEternalStorage {
 	mapping(uint256 => RoyaltyInfo[]) royalties;
 }
 
-library LibMusixverseEternalStorage {
-	function diamondStorage() internal pure returns (MusixverseEternalStorage storage ds) {
+library LibMusixverseAppStorage {
+	function diamondStorage() internal pure returns (MusixverseAppStorage storage ds) {
 		assembly {
 			ds.slot := 0
 		}
@@ -59,35 +71,4 @@ library LibMusixverseEternalStorage {
 	function abs(int256 x) internal pure returns (uint256) {
 		return uint256(x >= 0 ? x : -x);
 	}
-}
-
-contract Modifiers {
-	// modifier onlyTokenOwner(uint256 _tokenId) {
-	// 	require(LibMeta.msgSender() == s.aavegotchis[_tokenId].owner, "LibAppStorage: Only aavegotchi owner can call this function");
-	// 	_;
-	// }
-
-	// modifier onlyUnlocked(uint256 _tokenId) {
-	// 	require(s.aavegotchis[_tokenId].locked == false, "LibAppStorage: Only callable on unlocked Aavegotchis");
-	// 	_;
-	// }
-
-	modifier onlyOwner() {
-		LibDiamond.enforceIsContractOwner();
-		_;
-	}
-
-	/***********************************|
-    |              Events               |
-    |__________________________________*/
-
-	event TokenCreated(uint256 trackId, uint256 tokenId, uint256 price, uint256 localTokenId);
-
-	event TrackMinted(uint256 trackId, uint256 maxTokenId, uint256 price, string URIHash);
-
-	event TokenPurchased(uint256 tokenId, address previousOwner, address newOwner, uint256 price);
-
-	event TokenPriceUpdated(uint256 tokenId, uint256 oldPrice, uint256 newPrice);
-
-	event TokenOnSaleUpdated(uint256 tokenId, bool onSale);
 }

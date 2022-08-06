@@ -16,11 +16,12 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuar
 import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { Counters } from "@openzeppelin/contracts/utils/Counters.sol";
 import { LibDiamond } from "../../shared/libraries/LibDiamond.sol";
-import { MusixverseEternalStorage, Modifiers, TrackNFT, RoyaltyInfo } from "../libraries/LibMusixverseEternalStorage.sol";
-import { MusixverseEternalStorageFacet } from "./MusixverseEternalStorageFacet.sol";
+import { TrackNftCreationData, TrackNFT, RoyaltyInfo } from "../libraries/LibMusixverseAppStorage.sol";
+import { MusixverseEternalStorage } from "../common/MusixverseEternalStorage.sol";
+import { Modifiers } from "../common/Modifiers.sol";
 import { LibMusixverse } from "../libraries/LibMusixverse.sol";
 
-contract MusixverseFacet is MusixverseEternalStorageFacet, ERC1155, Pausable, Modifiers {
+contract MusixverseFacet is MusixverseEternalStorage, ERC1155, Pausable, Modifiers {
 	using SafeMath for uint256;
 	using Counters for Counters.Counter;
 
@@ -32,7 +33,8 @@ contract MusixverseFacet is MusixverseEternalStorageFacet, ERC1155, Pausable, Mo
 		s.name = "Musixverse";
 		s.symbol = "MXV";
 		s.PLATFORM_FEE_PERCENTAGE = 1;
-		s.PLATFORM_ADDRESS = address(this);
+		s.PLATFORM_ADDRESS = payable(address(this));
+		s.REFERRAL_CUT = 10;
 		s.contractURI = contractURI_;
 		s.baseURI = baseURI_;
 		_setURI(string(abi.encodePacked(baseURI_, "{id}")));
@@ -50,14 +52,6 @@ contract MusixverseFacet is MusixverseEternalStorageFacet, ERC1155, Pausable, Mo
 		_setURI(newURI);
 	}
 
-	function updateContractMetadataURI(string memory newURI) public onlyOwner {
-		s.contractURI = newURI;
-	}
-
-	function updateBaseURI(string memory newURI) public onlyOwner {
-		s.baseURI = newURI;
-	}
-
 	// Overriding the uri function
 	function uri(uint256 mxvTokenId) public view virtual override returns (string memory) {
 		require(mxvTokenId > 0 && mxvTokenId <= s.mxvLatestTokenId.current(), "Token DNE");
@@ -73,51 +67,52 @@ contract MusixverseFacet is MusixverseEternalStorageFacet, ERC1155, Pausable, Mo
 		s.mxvTokenHashes[_tokenId] = _tokenURIHash;
 	}
 
-	function updatePlatformFeePercentage(uint8 newPlatformFeePercentage) public onlyOwner {
-		s.PLATFORM_FEE_PERCENTAGE = newPlatformFeePercentage;
-	}
-
-	function mintTrackNFT(
-		uint16 amount,
-		uint256 price,
-		string calldata URIHash,
-		address[] calldata collaborators,
-		uint16[] calldata percentageContributions,
-		uint16 resaleRoyaltyPercentage,
-		bool onSale,
-		uint256 unlockTimestamp
-	) external virtual whenNotPaused {
-		LibMusixverse.checkForMinting(amount, price, URIHash, collaborators, percentageContributions, resaleRoyaltyPercentage);
-
-		uint256[] memory _tokenIds = new uint256[](amount);
-		uint256[] memory _tokenAmounts = new uint256[](amount);
-
-		for (uint256 i = 0; i < amount; i++) {
+	function mintTrackNFT(TrackNftCreationData calldata data) external virtual whenNotPaused {
+		LibMusixverse.checkForMinting(data);
+		uint256[] memory _tokenIds = new uint256[](data.amount);
+		uint256[] memory _tokenAmounts = new uint256[](data.amount);
+		for (uint256 i = 0; i < data.amount; i++) {
 			s.mxvLatestTokenId.increment();
 			_tokenIds[i] = s.mxvLatestTokenId.current();
 			_tokenAmounts[i] = 1;
-			_setTokenUri(s.mxvLatestTokenId.current(), URIHash);
-			LibMusixverse.setRoyalties(s.mxvLatestTokenId.current(), collaborators, percentageContributions, s.royalties);
+			_setTokenUri(s.mxvLatestTokenId.current(), data.URIHash);
+			LibMusixverse.setRoyalties(s.mxvLatestTokenId.current(), data.collaborators, data.percentageContributions, s.royalties);
 			s._owners[s.mxvLatestTokenId.current()] = msg.sender;
-			s.trackNFTs[s.mxvLatestTokenId.current()] = TrackNFT(price, msg.sender, resaleRoyaltyPercentage, onSale, false, unlockTimestamp);
+			s.trackNFTs[s.mxvLatestTokenId.current()] = TrackNFT(
+				data.price,
+				msg.sender,
+				data.resaleRoyaltyPercentage,
+				data.onSale,
+				false,
+				data.unlockTimestamp
+			);
 		}
 		_mintBatch(msg.sender, _tokenIds, _tokenAmounts, "");
 		s.totalTracks.increment();
-
-		for (uint256 i = 0; i < amount; i++) {
-			emit TokenCreated(s.totalTracks.current(), _tokenIds[i], price, i + 1);
+		for (uint256 i = 0; i < data.amount; i++) {
+			emit TokenCreated(msg.sender, s.totalTracks.current(), _tokenIds[i], data.price, i + 1);
 		}
-		emit TrackMinted(s.totalTracks.current(), s.mxvLatestTokenId.current(), price, URIHash);
+		emit TrackMinted(msg.sender, s.totalTracks.current(), s.mxvLatestTokenId.current(), data.price, data.URIHash);
 	}
 
 	function purchaseTrackNFT(uint256 tokenId) public payable whenNotPaused {
 		address _prevOwner = ownerOf(tokenId);
-		LibMusixverse.purchaseToken(tokenId, s.trackNFTs, payable(s.PLATFORM_ADDRESS), s.PLATFORM_FEE_PERCENTAGE, s.mxvLatestTokenId);
+		LibMusixverse.purchaseToken(tokenId, payable(address(0)), s.trackNFTs, s.mxvLatestTokenId);
 		// Transfer ownership to buyer
 		_safeTransferFrom(_prevOwner, msg.sender, tokenId, 1, "");
 		s._owners[tokenId] = msg.sender;
 		// Trigger an event
-		emit TokenPurchased(tokenId, _prevOwner, msg.sender, msg.value);
+		emit TokenPurchased(tokenId, address(0), _prevOwner, msg.sender, msg.value);
+	}
+
+	function purchaseReferredTrackNFT(uint256 tokenId, address payable referrer) public payable whenNotPaused {
+		address _prevOwner = ownerOf(tokenId);
+		LibMusixverse.purchaseToken(tokenId, referrer, s.trackNFTs, s.mxvLatestTokenId);
+		// Transfer ownership to buyer
+		_safeTransferFrom(_prevOwner, msg.sender, tokenId, 1, "");
+		s._owners[tokenId] = msg.sender;
+		// Trigger an event
+		emit TokenPurchased(tokenId, referrer, _prevOwner, msg.sender, msg.value);
 	}
 
 	function updatePrice(uint256 tokenId, uint256 newPrice) public {
@@ -129,13 +124,13 @@ contract MusixverseFacet is MusixverseEternalStorageFacet, ERC1155, Pausable, Mo
 			s.mxvLatestTokenId
 		);
 		// Trigger an event
-		emit TokenPriceUpdated(tokenId, _oldPrice, _newPrice);
+		emit TokenPriceUpdated(msg.sender, tokenId, _oldPrice, _newPrice);
 	}
 
 	function toggleOnSale(uint256 tokenId) public {
 		bool _onSale = LibMusixverse.toggleOnSaleAttribute(payable(s.PLATFORM_ADDRESS), tokenId, s.trackNFTs, s.mxvLatestTokenId);
 		// Trigger an event
-		emit TokenOnSaleUpdated(tokenId, _onSale);
+		emit TokenOnSaleUpdated(msg.sender, tokenId, _onSale);
 	}
 
 	// @notice Called with the token id to determine how much royalty is owed and to whom

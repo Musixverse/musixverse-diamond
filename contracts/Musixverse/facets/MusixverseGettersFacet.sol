@@ -11,10 +11,10 @@ pragma solidity ^0.8.0;
 */
 
 import { Counters } from "@openzeppelin/contracts/utils/Counters.sol";
-import { MusixverseEternalStorage, TrackNFT, RoyaltyInfo } from "../libraries/LibMusixverseEternalStorage.sol";
-import { MusixverseEternalStorageFacet } from "./MusixverseEternalStorageFacet.sol";
+import { MusixverseAppStorage, TrackNFT, RoyaltyInfo } from "../libraries/LibMusixverseAppStorage.sol";
+import { MusixverseEternalStorage } from "../common/MusixverseEternalStorage.sol";
 
-contract MusixverseGettersFacet is MusixverseEternalStorageFacet {
+contract MusixverseGettersFacet is MusixverseEternalStorage {
 	using Counters for Counters.Counter;
 
 	/// @notice Return the universal name of the NFT
