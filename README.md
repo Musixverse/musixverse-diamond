@@ -46,6 +46,12 @@ Add your secrets and api keys.
 npx hardhat run scripts/deploy.js
 ```
 
+or
+
+```console
+npx hardhat deploy --network <NETWORK_NAME>
+```
+
 **Things to keep in mind during development & deployment-**
 
 1. Storage Collision

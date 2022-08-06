@@ -1,5 +1,5 @@
 // contracts/shared/interfaces/IERC165.sol
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: BSL 1.1
 pragma solidity ^0.8.0;
 
 interface IERC165 {

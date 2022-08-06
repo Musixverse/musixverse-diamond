@@ -6,7 +6,7 @@ const {
 	deployMusixverseFacet,
 	deployMusixverseGettersFacet,
 	deployMusixverseSettersFacet,
-} = require("../scripts/deploy.js");
+} = require("../scripts/test_deploy.js");
 const { expect, assert } = require("chai");
 const { ethers } = require("hardhat");
 const { mintTrack, mint3TokensOfTrack } = require("./utils/helpers");

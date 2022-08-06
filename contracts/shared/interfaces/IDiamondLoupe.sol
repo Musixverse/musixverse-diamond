@@ -1,5 +1,5 @@
 // contracts/shared/interfaces/IDiamondLoupe.sol
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: BSL 1.1
 pragma solidity ^0.8.0;
 
 // A loupe is a small magnifying glass used to look at diamonds.

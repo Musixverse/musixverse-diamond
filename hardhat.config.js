@@ -3,9 +3,8 @@ require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-etherscan");
 require("hardhat-contract-sizer");
 require("dotenv").config();
+const { deployContracts } = require("./scripts/deploy");
 
-// This is a sample Hardhat task. To learn how to create your own go to
-// https://hardhat.org/guides/create-task.html
 task("accounts", "Prints the list of accounts", async () => {
 	const accounts = await ethers.getSigners();
 
@@ -14,36 +13,13 @@ task("accounts", "Prints the list of accounts", async () => {
 	}
 });
 
-task("deploy", "Deploy the smart contracts", async (taskArgs, hre) => {
-	const MusixverseLib = await ethers.getContractFactory("MusixverseLib");
-	const mxvLib = await MusixverseLib.deploy();
-
-	const MusixverseContract = await hre.ethers.getContractFactory("MusixverseV1", {
-		libraries: {
-			MusixverseLib: mxvLib.address,
-		},
-	});
-	const mxv = await upgrades.deployProxy(
-		MusixverseContract,
-		["https://gateway.moralisipfs.com/ipfs/", "https://www.musixverse.com/contract-metadata-uri"],
-		{
-			initializer: "initialize",
-		}
-	);
-	await mxv.deployed();
-
-	console.log("Deployed library address:", mxvLib.address);
-	console.log("Deployed contract address:", await upgrades.erc1967.getImplementationAddress(mxv.address));
-	console.log("Deployed proxy address:", mxv.address);
-
+task("deploy", "Deploy smart contracts", async (taskArgs, hre) => {
+	await deployContracts();
 	// await hre.run("verify:verify", {
 	//     address: mxv.address,
 	//     constructorArguments: [],
 	// });
 });
-
-// You need to export an object to set up your config
-// Go to https://hardhat.org/config/ to learn more
 
 /**
  * @type import('hardhat/config').HardhatUserConfig

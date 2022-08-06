@@ -160,16 +160,9 @@ async function deployMusixverseSettersFacet() {
 	return musixverseSettersFacet.address;
 }
 
-async function deployContracts() {
-	await deployMusixverseDiamond();
-	await deployMusixverseFacet();
-	await deployMusixverseGettersFacet();
-	await deployMusixverseSettersFacet();
-}
-
 // We recommend this pattern to be able to use async/await everywhere and properly handle errors.
 if (require.main === module) {
-	deployContracts()
+	deployMusixverseDiamond()
 		.then(() => process.exit(0))
 		.catch((error) => {
 			console.error(error);
@@ -177,4 +170,4 @@ if (require.main === module) {
 		});
 }
 
-module.exports = { deployContracts };
+module.exports = { deployMusixverseDiamond, deployMusixverseFacet, deployMusixverseGettersFacet, deployMusixverseSettersFacet };

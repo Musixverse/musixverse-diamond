@@ -1,5 +1,5 @@
 const { getSelectors, FacetCutAction, removeSelectors, findAddressPositionInFacets } = require("../scripts/libraries/diamond.js");
-const { deployMusixverseDiamond } = require("../scripts/deploy.js");
+const { deployMusixverseDiamond } = require("../scripts/test_deploy.js");
 const { assert } = require("chai");
 
 describe("MusixverseDiamond Tests", async function () {
