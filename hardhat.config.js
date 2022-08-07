@@ -4,6 +4,15 @@ require("@nomiclabs/hardhat-etherscan");
 require("hardhat-contract-sizer");
 require("dotenv").config();
 const { deployContracts } = require("./scripts/deploy");
+const {
+	MXV_DIAMOND_CUT_FACET,
+	MXV_DIAMOND_LOUPE_FACET,
+	MXV_DIAMOND_ADDRESS,
+	MXV_OWNERSHIP_FACET,
+	MUSIXVERSE_FACET_ADDRESS,
+	MUSIXVERSE_GETTERS_FACET_ADDRESS,
+	MUSIXVERSE_SETTERS_FACET_ADDRESS,
+} = require("./contract_addresses");
 
 task("accounts", "Prints the list of accounts", async () => {
 	const accounts = await ethers.getSigners();
@@ -19,6 +28,62 @@ task("deploy", "Deploy smart contracts", async (taskArgs, hre) => {
 	//     address: mxv.address,
 	//     constructorArguments: [],
 	// });
+});
+
+task("verify-contracts", "Verify smart contracts", async (taskArgs, hre) => {
+	try {
+		await hre.run("verify:verify", {
+			address: MXV_DIAMOND_CUT_FACET,
+			constructorArguments: [],
+		});
+	} catch (error) {
+		console.log(error);
+	}
+
+	try {
+		await hre.run("verify:verify", {
+			address: MXV_DIAMOND_LOUPE_FACET,
+			constructorArguments: [],
+		});
+	} catch (error) {
+		console.log(error);
+	}
+
+	try {
+		await hre.run("verify:verify", {
+			address: MXV_OWNERSHIP_FACET,
+			constructorArguments: [],
+		});
+	} catch (error) {
+		console.log(error);
+	}
+
+	try {
+		await hre.run("verify:verify", {
+			address: MUSIXVERSE_FACET_ADDRESS,
+			constructorArguments: ["https://gateway.moralisipfs.com/ipfs/", "https://www.musixverse.com/contract-metadata-uri"],
+		});
+	} catch (error) {
+		console.log(error);
+	}
+
+	try {
+		await hre.run("verify:verify", {
+			address: MUSIXVERSE_GETTERS_FACET_ADDRESS,
+			constructorArguments: [],
+		});
+	} catch (error) {
+		console.log(error);
+	}
+
+	try {
+		await hre.run("verify:verify", {
+			address: MUSIXVERSE_SETTERS_FACET_ADDRESS,
+			constructorArguments: [],
+		});
+	} catch (error) {
+		console.log(error);
+	}
 });
 
 /**

@@ -12,19 +12,36 @@ pragma solidity ^0.8.0;
 
 import { LibDiamond } from "./libraries/LibDiamond.sol";
 import { IDiamondCut } from "./interfaces/IDiamondCut.sol";
+import { IERC165 } from "./interfaces/IERC165.sol";
+import { IERC1155 } from "./interfaces/IERC1155.sol";
 
 contract MusixverseDiamond {
-	constructor(address _contractOwner, address _diamondCutFacet) payable {
+	constructor(
+		address _contractOwner,
+		address _diamondCutFacet,
+		address _diamondLoupeFacet
+	) payable {
 		LibDiamond.setContractOwner(_contractOwner);
 
+		LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
+		ds.supportedInterfaces[type(IERC1155).interfaceId] = true;
+
 		// Add the diamondCut external function from the diamondCutFacet
-		IDiamondCut.FacetCut[] memory cut = new IDiamondCut.FacetCut[](1);
+		IDiamondCut.FacetCut[] memory cut = new IDiamondCut.FacetCut[](2);
 		bytes4[] memory functionSelectors = new bytes4[](1);
 		functionSelectors[0] = IDiamondCut.diamondCut.selector;
 		cut[0] = IDiamondCut.FacetCut({
 			facetAddress: _diamondCutFacet,
 			action: IDiamondCut.FacetCutAction.Add,
 			functionSelectors: functionSelectors
+		});
+		// Add the IERC165.supportsInterface function
+		bytes4[] memory supportsInterfaceFunctionSelectors = new bytes4[](1);
+		supportsInterfaceFunctionSelectors[0] = IERC165.supportsInterface.selector;
+		cut[1] = IDiamondCut.FacetCut({
+			facetAddress: _diamondLoupeFacet,
+			action: IDiamondCut.FacetCutAction.Add,
+			functionSelectors: supportsInterfaceFunctionSelectors
 		});
 		LibDiamond.diamondCut(cut, address(0), "");
 	}

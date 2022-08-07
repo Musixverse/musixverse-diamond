@@ -14,11 +14,17 @@ async function deployMusixverseDiamond() {
 	await diamondCutFacet.deployed();
 	console.log("\n\tDiamondCutFacet deployed:", diamondCutFacet.address);
 
+	// deploy DiamondLoupeFacet
+	const DiamondLoupeFacet = await ethers.getContractFactory("DiamondLoupeFacet");
+	const diamondLoupeFacet = await DiamondLoupeFacet.deploy();
+	await diamondLoupeFacet.deployed();
+	console.log("\tDiamondLoupeFacet deployed:", diamondLoupeFacet.address);
+
 	// deploy MusixverseDiamond
 	const MusixverseDiamond = await ethers.getContractFactory("MusixverseDiamond");
-	const diamond = await MusixverseDiamond.deploy(contractOwner.address, diamondCutFacet.address);
+	const diamond = await MusixverseDiamond.deploy(contractOwner.address, diamondCutFacet.address, diamondLoupeFacet.address);
 	await diamond.deployed();
-	console.log("\tMusixverseDiamond deployed:", diamond.address);
+	console.log("\n\tMusixverseDiamond deployed:", diamond.address);
 	musixverseDiamondAddress = diamond.address;
 
 	// deploy DiamondInit
@@ -31,7 +37,7 @@ async function deployMusixverseDiamond() {
 
 	// deploy facets
 	console.log("\n\tDeploying facets...\n");
-	const FacetNames = ["DiamondLoupeFacet", "OwnershipFacet"];
+	const FacetNames = ["OwnershipFacet"];
 	const cut = [];
 	for (const FacetName of FacetNames) {
 		const Facet = await ethers.getContractFactory(FacetName);
@@ -44,6 +50,14 @@ async function deployMusixverseDiamond() {
 			functionSelectors: getSelectors(facet),
 		});
 	}
+
+	// add remaining diamondLoupeFacet functions to the diamond
+	const selectors = getSelectors(diamondLoupeFacet).remove(["supportsInterface(bytes4)"]);
+	cut.push({
+		facetAddress: diamondLoupeFacet.address,
+		action: FacetCutAction.Add,
+		functionSelectors: selectors,
+	});
 
 	// upgrade diamond with facets
 	// console.log("MusixverseDiamond Cut:", cut);

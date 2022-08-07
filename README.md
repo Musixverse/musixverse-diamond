@@ -73,10 +73,28 @@ https://eip2535diamonds.substack.com/p/constructor-functions-dont-work-in?s=w
 
 ## Verifying source code on block explorer
 
+Check that `contract_addresses.js` has the correct facet addresses.
+
+Then, run the script to verify all contracts at once-
+```console
+npx hardhat verify-contracts
+```
+
+or 
+
+To verify contracts individually-
 ```console
 npx hardhat verify CONTRACT_ADDR --network mumbai
 ```
 
+With constructor arguments-
+```console
+npx hardhat verify 0x434c83d0d44eF9B6a2295C0a43DA2b065265075a --network mumbai "0x159507b2b3829791fAB794581D2aC074F3596013" "0x241AF116CBa2C7C8FBB461555Af19561Cd2904b7"
+```
+
+```console
+npx hardhat verify 0x42f6ac17A241fD6F27eb4d6BffE5f71FFeE04b9b --network mumbai "https://gateway.moralisipfs.com/ipfs/" "https://www.musixverse.com/contract-metadata-uri"
+```
 
 ## Upgrading the diamond
 
