@@ -77,7 +77,7 @@ Check that `contract_addresses.js` has the correct facet addresses.
 
 Then, run the script to verify all contracts at once-
 ```console
-npx hardhat verify-contracts
+npx hardhat verify-contracts --network mumbai
 ```
 
 or 
