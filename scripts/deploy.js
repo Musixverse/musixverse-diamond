@@ -1,8 +1,11 @@
 /* global ethers */
 /* eslint prefer-const: "off" */
 
+const fs = require("fs/promises");
 const { getSelectors, FacetCutAction } = require("./libraries/diamond.js");
 let musixverseDiamondAddress;
+var diamondAddressWriteToFile;
+var diamondAddressWriteToFileData;
 
 async function deployMusixverseDiamond() {
 	const accounts = await ethers.getSigners();
@@ -35,6 +38,15 @@ async function deployMusixverseDiamond() {
 	await diamondInit.deployed();
 	console.log("\tDiamondInit deployed:", diamondInit.address);
 
+	console.log("\tWriting Diamond addresses to file- contract_addresses.js\n");
+	diamondAddressWriteToFile = `const MXV_DIAMOND_CUT_FACET = "${diamondCutFacet.address}";\nconst MXV_DIAMOND_LOUPE_FACET = "${diamondLoupeFacet.address}";\nconst MXV_DIAMOND_ADDRESS = "${diamond.address}";\n`;
+	diamondAddressWriteToFileData = JSON.stringify(diamondAddressWriteToFile);
+	await fs.writeFile("./contract_addresses.js", JSON.parse(diamondAddressWriteToFileData), (err) => {
+		if (err) {
+			console.log("Error writing config.js:", err.message);
+		}
+	});
+
 	// deploy facets
 	console.log("\n\tDeploying facets...\n");
 	const FacetNames = ["OwnershipFacet"];
@@ -44,6 +56,13 @@ async function deployMusixverseDiamond() {
 		const facet = await Facet.deploy();
 		await facet.deployed();
 		console.log(`\t${FacetName} deployed: ${facet.address}`);
+		diamondAddressWriteToFile = `const MXV_OWNERSHIP_FACET = "${facet.address}";\n`;
+		diamondAddressWriteToFileData = JSON.stringify(diamondAddressWriteToFile);
+		await fs.writeFile("./contract_addresses.js", JSON.parse(diamondAddressWriteToFileData), { flag: "a+" }, (err) => {
+			if (err) {
+				console.log("Error writing config.js:", err.message);
+			}
+		});
 		cut.push({
 			facetAddress: facet.address,
 			action: FacetCutAction.Add,
@@ -73,6 +92,7 @@ async function deployMusixverseDiamond() {
 		throw Error(`MusixverseDiamond upgrade failed: ${tx.hash}`);
 	}
 	console.log("\tCompleted diamond cut.\n");
+
 	return diamond.address;
 }
 
@@ -89,6 +109,14 @@ async function deployMusixverseFacet() {
 	const musixverseFacet = await MusixverseFacet.deploy("https://gateway.moralisipfs.com/ipfs/", "https://www.musixverse.com/contract-metadata-uri");
 	await musixverseFacet.deployed();
 	console.log(`\tMusixverseFacet deployed: ${musixverseFacet.address}`);
+	diamondAddressWriteToFile = `const MUSIXVERSE_FACET_ADDRESS = "${musixverseFacet.address}";\n`;
+	diamondAddressWriteToFileData = JSON.stringify(diamondAddressWriteToFile);
+	await fs.writeFile("./contract_addresses.js", JSON.parse(diamondAddressWriteToFileData), { flag: "a+" }, (err) => {
+		if (err) {
+			console.log("Error writing config.js:", err.message);
+		}
+	});
+
 	const selectors = getSelectors(musixverseFacet).remove(["supportsInterface(bytes4)"]);
 
 	const diamondCut = await ethers.getContractAt("IDiamondCut", musixverseDiamondAddress);
@@ -121,6 +149,13 @@ async function deployMusixverseGettersFacet() {
 	const musixverseGettersFacet = await MusixverseGettersFacet.deploy();
 	await musixverseGettersFacet.deployed();
 	console.log(`\tMusixverseGettersFacet deployed: ${musixverseGettersFacet.address}`);
+	diamondAddressWriteToFile = `const MUSIXVERSE_GETTERS_FACET_ADDRESS = "${musixverseGettersFacet.address}";\n`;
+	diamondAddressWriteToFileData = JSON.stringify(diamondAddressWriteToFile);
+	await fs.writeFile("./contract_addresses.js", JSON.parse(diamondAddressWriteToFileData), { flag: "a+" }, (err) => {
+		if (err) {
+			console.log("Error writing config.js:", err.message);
+		}
+	});
 
 	const selectors = getSelectors(musixverseGettersFacet);
 	const diamondCut = await ethers.getContractAt("IDiamondCut", musixverseDiamondAddress);
@@ -150,6 +185,13 @@ async function deployMusixverseSettersFacet() {
 	const musixverseSettersFacet = await MusixverseSettersFacet.deploy();
 	await musixverseSettersFacet.deployed();
 	console.log(`\tMusixverseSettersFacet deployed: ${musixverseSettersFacet.address}`);
+	diamondAddressWriteToFile = `const MUSIXVERSE_SETTERS_FACET_ADDRESS = "${musixverseSettersFacet.address}";\n`;
+	diamondAddressWriteToFileData = JSON.stringify(diamondAddressWriteToFile);
+	await fs.writeFile("./contract_addresses.js", JSON.parse(diamondAddressWriteToFileData), { flag: "a+" }, (err) => {
+		if (err) {
+			console.log("Error writing config.js:", err.message);
+		}
+	});
 
 	const selectors = getSelectors(musixverseSettersFacet);
 	const diamondCut = await ethers.getContractAt("IDiamondCut", musixverseDiamondAddress);
@@ -174,11 +216,30 @@ async function deployMusixverseSettersFacet() {
 	return musixverseSettersFacet.address;
 }
 
+async function appendExportsLine() {
+	diamondAddressWriteToFile = `\nmodule.exports = {
+	MXV_DIAMOND_CUT_FACET,
+	MXV_DIAMOND_LOUPE_FACET,
+	MXV_DIAMOND_ADDRESS,
+	MXV_OWNERSHIP_FACET,
+	MUSIXVERSE_FACET_ADDRESS,
+	MUSIXVERSE_GETTERS_FACET_ADDRESS,
+	MUSIXVERSE_SETTERS_FACET_ADDRESS,
+};`;
+	diamondAddressWriteToFileData = JSON.stringify(diamondAddressWriteToFile);
+	await fs.writeFile("./contract_addresses.js", JSON.parse(diamondAddressWriteToFileData), { flag: "a+" }, (err) => {
+		if (err) {
+			console.log("Error writing config.js:", err.message);
+		}
+	});
+}
+
 async function deployContracts() {
 	await deployMusixverseDiamond();
 	await deployMusixverseFacet();
 	await deployMusixverseGettersFacet();
 	await deployMusixverseSettersFacet();
+	await appendExportsLine();
 }
 
 // We recommend this pattern to be able to use async/await everywhere and properly handle errors.

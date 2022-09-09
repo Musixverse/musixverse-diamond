@@ -24,6 +24,7 @@
     "@nomiclabs/hardhat-etherscan": "^3.0.3",
     "@openzeppelin/contracts": "^4.4.2",
     "dotenv": "^16.0.0",
+    "fs": "^0.0.1-security",
     "hardhat-contract-sizer": "^2.5.1"
   }
 }
