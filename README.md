@@ -52,6 +52,8 @@ or
 npx hardhat deploy --network <NETWORK_NAME>
 ```
 
+New contract addresses will automatically be added to the `contract_addresses.js` file.
+
 **Things to keep in mind during development & deployment-**
 
 1. Storage Collision
