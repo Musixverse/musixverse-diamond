@@ -22,6 +22,7 @@ struct TrackNftCreationData {
 	uint16 amount;
 	uint256 price;
 	string URIHash;
+	string unlockableContentURIHash;
 	address[] collaborators;
 	uint16[] percentageContributions;
 	uint16 resaleRoyaltyPercentage;
@@ -55,6 +56,8 @@ struct MusixverseAppStorage {
 	Counters.Counter mxvLatestTokenId;
 	Counters.Counter totalTracks;
 	mapping(uint256 => string) mxvTokenHashes;
+	mapping(uint256 => string) mxvUnlockableContentHashes;
+	mapping(uint256 => string) commentWall;
 	// Mapping from token ID to owner address
 	mapping(uint256 => address) _owners;
 	mapping(uint256 => TrackNFT) trackNFTs;

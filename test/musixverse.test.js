@@ -126,7 +126,7 @@ describe("Musixverse Tests", function () {
 			const [owner, addr1, addr2] = await ethers.getSigners();
 			await mintTrack(musixverseFacet, addr1);
 			expect((await musixverseFacet.uri(1)).toString()).to.equal(
-				(await musixverseGettersFacet.baseURI()) + "QmQQqbwJqzQqwfnjtsP1FwZQcYKroBiA5ppcEBc1fvPSTt"
+				(await musixverseGettersFacet.baseURI()) + "QmWSrUnaQCJArHSHEmHjZ8QMCyijUvXwtJNxcXqHoy3GUy"
 			);
 
 			await mint3TokensOfTrack(musixverseFacet, addr1, addr2);
@@ -165,9 +165,7 @@ describe("Musixverse Tests", function () {
 			expect(100).to.equal(Number(ethers.utils.formatEther(_trackNFT.price)));
 
 			// Failure: Tries to update the price of a trackNFT that does not exist- Must have valid id
-			expect(musixverseFacet.connect(addr1).updatePrice(2, ethers.utils.parseEther("100"))).to.be.revertedWith(
-				"LibMusixverse: Invalid tokenId"
-			);
+			expect(musixverseFacet.connect(addr1).updatePrice(2, ethers.utils.parseEther("100"))).to.be.revertedWith("LibMusixverse: Token DNE");
 			// Failure: An address other than the current owner tries to update the price of the NFT
 			expect(musixverseFacet.connect(addr2).updatePrice(1, ethers.utils.parseEther("100"))).to.be.revertedWith(
 				"LibMusixverse: Must be token owner to call this function"
@@ -191,7 +189,7 @@ describe("Musixverse Tests", function () {
 			expect(false).to.equal(_trackNFT.onSale);
 
 			// Failure: Tries to toggle a trackNFT that does not exist- Must have valid id
-			expect(musixverseFacet.connect(addr1).toggleOnSale(2)).to.be.revertedWith("LibMusixverse: Invalid tokenId");
+			expect(musixverseFacet.connect(addr1).toggleOnSale(2)).to.be.revertedWith("LibMusixverse: Token DNE");
 			// Failure: An address other than the current owner tries to toggle the onSale attribute
 			expect(musixverseFacet.connect(addr2).toggleOnSale(1)).to.be.revertedWith("LibMusixverse: Must be token owner to call this function");
 		});
@@ -371,6 +369,60 @@ describe("Musixverse Tests", function () {
 
 			const updatedFeePercentage = await musixverseGettersFacet.PLATFORM_FEE_PERCENTAGE();
 			assert.equal(updatedFeePercentage, 1);
+		});
+	});
+
+	describe("Access Unlockable Content URI", async () => {
+		it("Should be able to access unlockable content URI", async () => {
+			const [owner, addr1] = await ethers.getSigners();
+			await mintTrack(musixverseFacet, addr1);
+
+			// Success: Current owner can access the unlockable content URI
+			const _tokenId = 1;
+			const unlockableContentURIHash = await musixverseFacet.connect(addr1).unlockableContentUri(_tokenId);
+			expect(unlockableContentURIHash).to.equal((await musixverseGettersFacet.baseURI()) + "QmTUE2Jwg9aDEQzRZZB2Bw44PDLMSv7URBNZ1ohwKm5RDj");
+		});
+
+		it("Should not be able to access unlockable content URI", async () => {
+			const [owner, addr1, addr2, addr3] = await ethers.getSigners();
+			await mintTrack(musixverseFacet, addr1);
+
+			// Failure: Tries to access unlockable content URI of a track NFT that you don't own
+			const _tokenId = 1;
+			expect(musixverseFacet.connect(addr2).unlockableContentUri(_tokenId)).to.be.revertedWith("Must be token owner to call this function");
+			expect(musixverseFacet.connect(addr3).unlockableContentUri(_tokenId)).to.be.revertedWith("Must be token owner to call this function");
+		});
+	});
+
+	describe("Update the Comment Wall", async () => {
+		it("Should be empty comment when token is created", async () => {
+			const [owner, addr1] = await ethers.getSigners();
+			await mintTrack(musixverseFacet, addr1);
+
+			const _tokenId = 1;
+			expect((await musixverseGettersFacet.getCommentOnToken(_tokenId)).toString()).to.equal("");
+		});
+
+		it("Should be able to update comment on token", async () => {
+			const [owner, addr1] = await ethers.getSigners();
+			await mintTrack(musixverseFacet, addr1);
+
+			// Success: Current owner can update the comment
+			const _tokenId = 1;
+			const _comment = "Super stoked to get this track NFT! No bigger fan than me.";
+			await musixverseFacet.connect(addr1).updateCommentOnToken(_tokenId, _comment);
+
+			expect((await musixverseGettersFacet.getCommentOnToken(_tokenId)).toString()).to.equal(_comment);
+		});
+
+		it("Should not be able to update comment on token", async () => {
+			const [owner, addr1, addr2] = await ethers.getSigners();
+			await mintTrack(musixverseFacet, addr1);
+
+			// Failure: Tries to update comment of a token that does not exist- Must have valid id
+			expect(musixverseFacet.connect(owner).updateCommentOnToken(2, "Yeehaw!")).to.be.revertedWith("LibMusixverse: Token DNE");
+			// Failure: Tries to update comment of a token that you don't own
+			expect(musixverseFacet.connect(addr2).updateCommentOnToken(1)).to.be.revertedWith("Must be token owner to call this function");
 		});
 	});
 });

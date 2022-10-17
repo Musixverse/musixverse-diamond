@@ -33,4 +33,8 @@ contract MusixverseSettersFacet is MusixverseEternalStorage, Modifiers {
 	function updatePlatformFeePercentage(uint8 newPlatformFeePercentage) public onlyOwner {
 		s.PLATFORM_FEE_PERCENTAGE = newPlatformFeePercentage;
 	}
+
+	function updateReferralCutPercentage(uint8 newReferralCutPercentage) public onlyOwner {
+		s.REFERRAL_CUT = newReferralCutPercentage;
+	}
 }

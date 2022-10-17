@@ -31,4 +31,6 @@ contract Modifiers {
 	event TokenPriceUpdated(address caller, uint256 tokenId, uint256 oldPrice, uint256 newPrice);
 
 	event TokenOnSaleUpdated(address caller, uint256 tokenId, bool onSale);
+
+	event TokenCommentUpdated(address caller, uint256 tokenId, string previousComment, string newComment);
 }

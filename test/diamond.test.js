@@ -56,7 +56,7 @@ describe("MusixverseDiamond Tests", async function () {
 			},
 		});
 		const musixverseFacet = await MusixverseFacet.deploy(
-			"https://gateway.moralisipfs.com/ipfs/",
+			"https://ipfs.moralis.io:2053/ipfs/",
 			"https://www.musixverse.com/contract-metadata-uri"
 		);
 		await musixverseFacet.deployed();

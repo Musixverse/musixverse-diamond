@@ -40,11 +40,6 @@ library LibMusixverse {
 		}
 	}
 
-	function isPastUnlockTimestamp(TrackNFT memory trackNFT) public view {
-		// Require that current time is past unlockTimestamp
-		require(block.timestamp > trackNFT.unlockTimestamp, "LibMusixverse: Only callable on unlocked tokens");
-	}
-
 	function checkForSale(TrackNFT memory trackNFT, address prevOwner) public view {
 		isPastUnlockTimestamp(trackNFT);
 		// Require that the song is available for sale
@@ -193,10 +188,25 @@ library LibMusixverse {
 		return _trackNFT.onSale;
 	}
 
+	function updateComment(
+		address payable PLATFORM_ADDRESS,
+		uint256 tokenId,
+		string memory comment,
+		mapping(uint256 => string) storage commentWall,
+		Counters.Counter storage mxvLatestTokenId
+	) public returns (string memory) {
+		isValidCallByNFTOwner(PLATFORM_ADDRESS, tokenId, mxvLatestTokenId);
+		string memory _previousComment = commentWall[tokenId];
+		// Update the comment
+		commentWall[tokenId] = comment;
+
+		return _previousComment;
+	}
+
 	/* ---------------------- Modifiers converted to functions --------------------- */
 	function isValidTokenId(uint256 tokenId, Counters.Counter storage mxvLatestTokenId) public view {
 		// Require that the token id is valid
-		require(tokenId > 0 && tokenId <= mxvLatestTokenId.current(), "LibMusixverse: Invalid tokenId");
+		require(tokenId > 0 && tokenId <= mxvLatestTokenId.current(), "LibMusixverse: Token DNE");
 	}
 
 	function isNFTOwner(address payable PLATFORM_ADDRESS, uint256 tokenId) public view {
@@ -211,5 +221,10 @@ library LibMusixverse {
 	) public view {
 		isValidTokenId(tokenId, mxvLatestTokenId);
 		isNFTOwner(PLATFORM_ADDRESS, tokenId);
+	}
+
+	function isPastUnlockTimestamp(TrackNFT memory trackNFT) public view {
+		// Require that current time is past unlockTimestamp
+		require(block.timestamp > trackNFT.unlockTimestamp, "LibMusixverse: Only callable on unlocked tokens");
 	}
 }

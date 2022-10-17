@@ -58,13 +58,24 @@ contract MusixverseFacet is MusixverseEternalStorage, ERC1155, Pausable, Modifie
 		return string(abi.encodePacked(s.baseURI, s.mxvTokenHashes[mxvTokenId]));
 	}
 
+	function _setTokenHash(uint256 _tokenId, string memory _tokenURIHash) internal virtual {
+		s.mxvTokenHashes[_tokenId] = _tokenURIHash;
+	}
+
+	function unlockableContentUri(uint256 mxvTokenId) public view virtual returns (string memory) {
+		require(mxvTokenId > 0 && mxvTokenId <= s.mxvLatestTokenId.current(), "Token DNE");
+		// Require that nft owner is calling the function
+		require(ownerOf(mxvTokenId) == msg.sender, "Must be token owner to call this function");
+		return string(abi.encodePacked(s.baseURI, s.mxvUnlockableContentHashes[mxvTokenId]));
+	}
+
+	function _setUnlockableContentHash(uint256 _tokenId, string memory _unlockableContentURIHash) internal virtual {
+		s.mxvUnlockableContentHashes[_tokenId] = _unlockableContentURIHash;
+	}
+
 	function ownerOf(uint256 tokenId) public view returns (address) {
 		require(s._owners[tokenId] != address(0), "Token DNE");
 		return s._owners[tokenId];
-	}
-
-	function _setTokenUri(uint256 _tokenId, string memory _tokenURIHash) internal virtual {
-		s.mxvTokenHashes[_tokenId] = _tokenURIHash;
 	}
 
 	function mintTrackNFT(TrackNftCreationData calldata data) external virtual whenNotPaused {
@@ -75,7 +86,8 @@ contract MusixverseFacet is MusixverseEternalStorage, ERC1155, Pausable, Modifie
 			s.mxvLatestTokenId.increment();
 			_tokenIds[i] = s.mxvLatestTokenId.current();
 			_tokenAmounts[i] = 1;
-			_setTokenUri(s.mxvLatestTokenId.current(), data.URIHash);
+			_setTokenHash(s.mxvLatestTokenId.current(), data.URIHash);
+			_setUnlockableContentHash(s.mxvLatestTokenId.current(), data.unlockableContentURIHash);
 			LibMusixverse.setRoyalties(s.mxvLatestTokenId.current(), data.collaborators, data.percentageContributions, s.royalties);
 			s._owners[s.mxvLatestTokenId.current()] = msg.sender;
 			s.trackNFTs[s.mxvLatestTokenId.current()] = TrackNFT(
@@ -140,6 +152,18 @@ contract MusixverseFacet is MusixverseEternalStorage, ERC1155, Pausable, Modifie
 	// @info percentage - the royalty payment percentage
 	function getRoyaltyInfo(uint256 tokenId) public view returns (RoyaltyInfo[] memory) {
 		return s.royalties[tokenId];
+	}
+
+	function updateCommentOnToken(uint256 _tokenId, string memory _comment) public virtual {
+		string memory _previousComment = LibMusixverse.updateComment(
+			payable(s.PLATFORM_ADDRESS),
+			_tokenId,
+			_comment,
+			s.commentWall,
+			s.mxvLatestTokenId
+		);
+		// Trigger an event
+		emit TokenCommentUpdated(msg.sender, _tokenId, _previousComment, _comment);
 	}
 
 	// function _updateAccount(

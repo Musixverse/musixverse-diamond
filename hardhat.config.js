@@ -61,7 +61,7 @@ task("verify-contracts", "Verify smart contracts", async (taskArgs, hre) => {
 	try {
 		await hre.run("verify:verify", {
 			address: MUSIXVERSE_FACET_ADDRESS,
-			constructorArguments: ["https://gateway.moralisipfs.com/ipfs/", "https://www.musixverse.com/contract-metadata-uri"],
+			constructorArguments: ["https://ipfs.moralis.io:2053/ipfs/", "https://www.musixverse.com/contract-metadata-uri"],
 		});
 	} catch (error) {
 		console.log(error);

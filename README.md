@@ -95,7 +95,7 @@ npx hardhat verify 0x434c83d0d44eF9B6a2295C0a43DA2b065265075a --network mumbai "
 ```
 
 ```console
-npx hardhat verify 0x42f6ac17A241fD6F27eb4d6BffE5f71FFeE04b9b --network mumbai "https://gateway.moralisipfs.com/ipfs/" "https://www.musixverse.com/contract-metadata-uri"
+npx hardhat verify 0x42f6ac17A241fD6F27eb4d6BffE5f71FFeE04b9b --network mumbai "https://ipfs.moralis.io:2053/ipfs/" "https://www.musixverse.com/contract-metadata-uri"
 ```
 
 ## Upgrading the diamond
