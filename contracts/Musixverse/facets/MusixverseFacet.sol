@@ -115,6 +115,7 @@ contract MusixverseFacet is MusixverseEternalStorage, ERC1155, Pausable, Modifie
 		s._owners[tokenId] = msg.sender;
 		// Trigger an event
 		emit TokenPurchased(tokenId, address(0), _prevOwner, msg.sender, msg.value);
+		toggleOnSale(tokenId);
 	}
 
 	function purchaseReferredTrackNFT(uint256 tokenId, address payable referrer) public payable whenNotPaused {
@@ -125,6 +126,7 @@ contract MusixverseFacet is MusixverseEternalStorage, ERC1155, Pausable, Modifie
 		s._owners[tokenId] = msg.sender;
 		// Trigger an event
 		emit TokenPurchased(tokenId, referrer, _prevOwner, msg.sender, msg.value);
+		toggleOnSale(tokenId);
 	}
 
 	function updatePrice(uint256 tokenId, uint256 newPrice) public {

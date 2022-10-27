@@ -252,4 +252,4 @@ if (require.main === module) {
 		});
 }
 
-module.exports = { deployContracts };
+module.exports = { deployContracts, deployMusixverseFacet };

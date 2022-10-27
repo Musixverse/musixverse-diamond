@@ -100,9 +100,25 @@ npx hardhat verify 0x42f6ac17A241fD6F27eb4d6BffE5f71FFeE04b9b --network mumbai "
 
 ## Upgrading the diamond
 
-Check the `scripts/deploy.js` and or the `test/diamond.test.js` file for examples of upgrades.
+Check the `scripts/upgrades/upgrade-MusixverseFacet.js` file for example of upgrades.
 
 Note that any number of functions from any number of facets can be added/replaced/removed on a diamond in a single transaction. In addition an initialization function can be executed in the same transaction as an upgrade to initialize any state variables required for an upgrade. This 'everything done in a single transaction' capability ensures a diamond maintains a correct and consistent state during upgrades.
+
+Refer- https://github.com/mudgen/diamond-3-hardhat/blob/main/test/diamondTest.js
+
+### Steps to make an upgrade-
+
+- Check the task in `hardhat.config.js` & the upgrade file, and then run-
+```console
+npx hardhat upgradeMusixverseFacet --network mumbai
+```
+
+- Update the upgraded facet address in `contract_addresses.js`
+
+- Then verify the contract-
+```console
+npx hardhat verify CONTRACT_ADDR --network mumbai "https://ipfs.moralis.io:2053/ipfs/" "https://www.musixverse.com/contract-metadata-uri"
+```
 
 ## Facet Information
 

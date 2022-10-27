@@ -4,6 +4,7 @@ require("@nomiclabs/hardhat-etherscan");
 require("hardhat-contract-sizer");
 require("dotenv").config();
 const { deployContracts } = require("./scripts/deploy");
+const { upgradeMusixverseFacet } = require("./scripts/upgrades/upgrade-MusixverseFacet");
 const {
 	MXV_DIAMOND_CUT_FACET,
 	MXV_DIAMOND_LOUPE_FACET,
@@ -24,10 +25,10 @@ task("accounts", "Prints the list of accounts", async () => {
 
 task("deploy", "Deploy smart contracts", async (taskArgs, hre) => {
 	await deployContracts();
-	// await hre.run("verify:verify", {
-	//     address: mxv.address,
-	//     constructorArguments: [],
-	// });
+});
+
+task("upgradeMusixverseFacet", "Upgrade musixverse facet", async (taskArgs, hre) => {
+	await upgradeMusixverseFacet();
 });
 
 task("verify-contracts", "Verify smart contracts", async (taskArgs, hre) => {
