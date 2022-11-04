@@ -12,7 +12,7 @@ pragma solidity ^0.8.0;
 
 /// @dev Note: This contract is meant to declare any storage and is append-only. DO NOT modify old variables!
 
-import { Counters } from "@openzeppelin/contracts/utils/Counters.sol";
+import { Counters } from "./LibCounters.sol";
 
 /***********************************|
 |    Variables, structs, mappings   |
@@ -30,13 +30,19 @@ struct TrackNftCreationData {
 	uint256 unlockTimestamp;
 }
 
-struct TrackNFT {
-	uint256 price;
+struct Track {
+	string metadataHash;
+	string unlockableContentHash;
 	address artistAddress;
 	uint16 resaleRoyaltyPercentage;
+	uint256 unlockTimestamp;
+}
+
+struct Token {
+	uint256 trackId;
+	uint256 price;
 	bool onSale;
 	bool soldOnce;
-	uint256 unlockTimestamp;
 }
 
 struct RoyaltyInfo {
@@ -55,13 +61,16 @@ struct MusixverseAppStorage {
 	uint8 REFERRAL_CUT;
 	Counters.Counter mxvLatestTokenId;
 	Counters.Counter totalTracks;
-	mapping(uint256 => string) mxvTokenHashes;
-	mapping(uint256 => string) mxvUnlockableContentHashes;
-	mapping(uint256 => string) commentWall;
+	// Mapping from track ID to track data
+	mapping(uint256 => Track) trackNFTs;
+	// Mapping from token ID to token data
+	mapping(uint256 => Token) tokens;
 	// Mapping from token ID to owner address
-	mapping(uint256 => address) _owners;
-	mapping(uint256 => TrackNFT) trackNFTs;
+	mapping(uint256 => address) owners;
+	// Mapping from track ID to royalty info
 	mapping(uint256 => RoyaltyInfo[]) royalties;
+	// Mapping from token ID to comment
+	mapping(uint256 => string) commentWall;
 }
 
 library LibMusixverseAppStorage {

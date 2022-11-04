@@ -11,9 +11,9 @@ pragma solidity ^0.8.4;
 */
 
 import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import { Counters } from "@openzeppelin/contracts/utils/Counters.sol";
+import { Counters } from "./LibCounters.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
-import { LibMusixverseAppStorage, MusixverseAppStorage, TrackNftCreationData, TrackNFT, RoyaltyInfo } from "./LibMusixverseAppStorage.sol";
+import { LibMusixverseAppStorage, MusixverseAppStorage, TrackNftCreationData, Track, Token, RoyaltyInfo } from "./LibMusixverseAppStorage.sol";
 import { MusixverseFacet } from "../facets/MusixverseFacet.sol";
 
 library LibMusixverse {
@@ -29,6 +29,7 @@ library LibMusixverse {
 			"collaborators and percentageContributions must be the same length"
 		);
 		require(data.resaleRoyaltyPercentage >= 0, "resaleRoyaltyPercentage must be greater than or equal to 0");
+		checkForRoyalties(data.collaborators, data.percentageContributions);
 	}
 
 	function checkForRoyalties(address[] calldata collaborators, uint16[] calldata percentageContributions) public pure {
@@ -40,52 +41,58 @@ library LibMusixverse {
 		}
 	}
 
-	function checkForSale(TrackNFT memory trackNFT, address prevOwner) public view {
+	function checkForSale(
+		Track memory trackNFT,
+		Token memory token,
+		address prevOwner
+	) public view {
 		isPastUnlockTimestamp(trackNFT);
 		// Require that the song is available for sale
-		require(trackNFT.onSale, "Token not available for sale");
+		require(token.onSale, "Token not available for sale");
 		// Require that buyer is not the seller
 		require(prevOwner != msg.sender, "You cannot purchase your own song");
 		// Require that there is enough matic provided for the transaction
-		require(msg.value >= trackNFT.price, "Not enough value for the transaction");
+		require(msg.value >= token.price, "Not enough value for the transaction");
 	}
 
 	function setRoyalties(
-		uint256 tokenId,
+		uint256 trackId,
 		address[] calldata collaborators,
 		uint16[] calldata percentageContributions,
 		mapping(uint256 => RoyaltyInfo[]) storage royalties
 	) public {
-		checkForRoyalties(collaborators, percentageContributions);
-
 		for (uint256 i = 0; i < collaborators.length; i++) {
-			royalties[tokenId].push(RoyaltyInfo(payable(collaborators[i]), percentageContributions[i]));
+			royalties[trackId].push(RoyaltyInfo(payable(collaborators[i]), percentageContributions[i]));
 		}
 	}
 
 	function purchaseToken(
 		uint256 tokenId,
 		address payable referrer,
-		mapping(uint256 => TrackNFT) storage trackNFTs,
+		mapping(uint256 => Track) storage trackNFTs,
+		mapping(uint256 => Token) storage tokens,
 		Counters.Counter storage mxvLatestTokenId
 	) public {
 		MusixverseAppStorage storage s = LibMusixverseAppStorage.diamondStorage();
 		isValidTokenId(tokenId, mxvLatestTokenId);
-		// Fetch the songNFT
-		TrackNFT memory _trackNFT = trackNFTs[tokenId];
+		// Fetch the token
+		Token memory _token = tokens[tokenId];
+		// Fetch the trackNFT
+		Track memory _trackNFT = trackNFTs[tokens[tokenId].trackId];
 		address _prevOwner = MusixverseFacet(s.PLATFORM_ADDRESS).ownerOf(tokenId);
 		// Check that the trackNFT is available for sale
-		checkForSale(_trackNFT, _prevOwner);
+		checkForSale(_trackNFT, _token, _prevOwner);
 		// Transfer amounts
-		_distributeFunds(tokenId, referrer, _trackNFT, _prevOwner, trackNFTs);
+		_distributeFunds(tokenId, referrer, _trackNFT, _token, _prevOwner, tokens);
 	}
 
 	function _distributeFunds(
 		uint256 tokenId,
 		address payable referrer,
-		TrackNFT memory trackNFT,
+		Track memory trackNFT,
+		Token memory token,
 		address prevOwner,
-		mapping(uint256 => TrackNFT) storage trackNFTs
+		mapping(uint256 => Token) storage tokens
 	) internal {
 		MusixverseAppStorage storage s = LibMusixverseAppStorage.diamondStorage();
 		if (referrer == address(0)) {
@@ -93,7 +100,7 @@ library LibMusixverse {
 			uint256 _platformFee = ((msg.value).mul(s.PLATFORM_FEE_PERCENTAGE)).div(100);
 			Address.sendValue(s.PLATFORM_ADDRESS, _platformFee);
 
-			if (trackNFT.soldOnce) {
+			if (token.soldOnce) {
 				// Pay the artists _royaltyPercentage% of the transaction amount as royalty
 				uint256 _royaltyAmount = ((msg.value).mul(trackNFT.resaleRoyaltyPercentage)).div(100);
 				_distributeRoyalties(s.PLATFORM_ADDRESS, tokenId, _royaltyAmount);
@@ -112,7 +119,7 @@ library LibMusixverse {
 			Address.sendValue(referrer, _referralFee);
 			Address.sendValue(s.PLATFORM_ADDRESS, _platformFee - _referralFee);
 
-			if (trackNFT.soldOnce) {
+			if (token.soldOnce) {
 				// Pay the artists _royaltyPercentage% of the transaction amount as royalty
 				uint256 _royaltyAmount = ((msg.value).mul(trackNFT.resaleRoyaltyPercentage)).div(100);
 				_distributeRoyalties(s.PLATFORM_ADDRESS, tokenId, _royaltyAmount);
@@ -126,11 +133,11 @@ library LibMusixverse {
 			}
 		}
 
-		if (!trackNFT.soldOnce) {
+		if (!token.soldOnce) {
 			// Set soldOnce to true
-			trackNFT.soldOnce = true;
+			token.soldOnce = true;
 			// Update songNFT
-			trackNFTs[tokenId] = trackNFT;
+			tokens[tokenId] = token;
 		}
 	}
 
@@ -149,19 +156,19 @@ library LibMusixverse {
 	function updateTokenPrice(
 		address payable PLATFORM_ADDRESS,
 		uint256 tokenId,
-		mapping(uint256 => TrackNFT) storage trackNFTs,
+		mapping(uint256 => Token) storage tokens,
 		uint256 newPrice,
 		Counters.Counter storage mxvLatestTokenId
 	) public returns (uint256, uint256) {
 		isValidCallByNFTOwner(PLATFORM_ADDRESS, tokenId, mxvLatestTokenId);
 		// Fetch the song
-		TrackNFT storage _trackNFT = trackNFTs[tokenId];
+		Token storage _token = tokens[tokenId];
 		// Old price
-		uint256 _oldPrice = _trackNFT.price;
+		uint256 _oldPrice = _token.price;
 		// Edit the price
-		_trackNFT.price = newPrice;
+		_token.price = newPrice;
 		// Update the song
-		trackNFTs[tokenId] = _trackNFT;
+		tokens[tokenId] = _token;
 
 		return (_oldPrice, newPrice);
 	}
@@ -169,23 +176,25 @@ library LibMusixverse {
 	function toggleOnSaleAttribute(
 		address payable PLATFORM_ADDRESS,
 		uint256 tokenId,
-		mapping(uint256 => TrackNFT) storage trackNFTs,
+		mapping(uint256 => Track) storage trackNFTs,
+		mapping(uint256 => Token) storage tokens,
 		Counters.Counter storage mxvLatestTokenId
 	) public returns (bool) {
 		isValidCallByNFTOwner(PLATFORM_ADDRESS, tokenId, mxvLatestTokenId);
-		// Fetch the song
-		TrackNFT storage _trackNFT = trackNFTs[tokenId];
+		// Fetch the track
+		Track memory _trackNFT = trackNFTs[tokens[tokenId].trackId];
+		Token storage _token = tokens[tokenId];
 		isPastUnlockTimestamp(_trackNFT);
 		// Toggle onSale attribute
-		if (_trackNFT.onSale == true) {
-			_trackNFT.onSale = false;
-		} else if (_trackNFT.onSale == false) {
-			_trackNFT.onSale = true;
+		if (_token.onSale == true) {
+			_token.onSale = false;
+		} else if (_token.onSale == false) {
+			_token.onSale = true;
 		}
-		// Update the song
-		trackNFTs[tokenId] = _trackNFT;
+		// Update the token
+		tokens[tokenId] = _token;
 
-		return _trackNFT.onSale;
+		return _token.onSale;
 	}
 
 	function updateComment(
@@ -223,7 +232,7 @@ library LibMusixverse {
 		isNFTOwner(PLATFORM_ADDRESS, tokenId);
 	}
 
-	function isPastUnlockTimestamp(TrackNFT memory trackNFT) public view {
+	function isPastUnlockTimestamp(Track memory trackNFT) public view {
 		// Require that current time is past unlockTimestamp
 		require(block.timestamp > trackNFT.unlockTimestamp, "LibMusixverse: Only callable on unlocked tokens");
 	}

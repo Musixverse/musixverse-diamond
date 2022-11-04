@@ -118,6 +118,14 @@ module.exports = {
 			blockGasLimit: 210000000,
 			timeout: 1800000,
 		},
+		matic: {
+			url: "https://polygon-mainnet.g.alchemy.com/v2/ycr0tc0furLdDRV3tg5GiVzNsxRdgeJR",
+			accounts: [process.env.PRIVATE_KEY],
+			gas: 12000000,
+			gasPrice: 130000000000,
+			blockGasLimit: 210000000,
+			timeout: 1800000,
+		},
 	},
 	etherscan: {
 		apiKey: process.env.POLYGONSCAN_API_KEY,

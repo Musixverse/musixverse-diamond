@@ -15,17 +15,47 @@ import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { MusixverseEternalStorage } from "../common/MusixverseEternalStorage.sol";
-import { TrackNftCreationData, Track, Token, RoyaltyInfo } from "../libraries/LibMusixverseAppStorage.sol";
+import { TrackNftCreationData, Track, RoyaltyInfo } from "../libraries/LibMusixverseAppStorage.sol";
 import { LibDiamond } from "../../shared/libraries/LibDiamond.sol";
 import { LibMusixverse } from "../libraries/LibMusixverse.sol";
 import { Counters } from "../libraries/LibCounters.sol";
 import { Modifiers } from "../common/Modifiers.sol";
+import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-contract MusixverseFacet is MusixverseEternalStorage, ERC1155, Pausable, Modifiers, ReentrancyGuard {
+contract NewMusixverseFacet is MusixverseEternalStorage, ERC1155, Pausable, Modifiers, ReentrancyGuard, EIP712 {
 	using SafeMath for uint256;
 	using Counters for Counters.Counter;
 
-	constructor(string memory baseURI_, string memory contractURI_) ERC1155(string(abi.encodePacked(baseURI_, "{id}"))) {
+	string private constant SIGNING_DOMAIN = "Musixverse";
+	string private constant SIGNATURE_VERSION = "1";
+
+	struct LazyNFTVoucher {
+		uint256 tokenId;
+		uint256 price;
+		string uri;
+		bytes signature;
+	}
+
+	function recover(LazyNFTVoucher calldata voucher) public view returns (address) {
+		bytes32 digest = _hashTypedDataV4(
+			keccak256(
+				abi.encode(
+					keccak256("LazyNFTVoucher(uint256 tokenId, uint256 price, string uri)"),
+					voucher.tokenId,
+					voucher.price,
+					keccak256(bytes(voucher.uri))
+				)
+			)
+		);
+		address signer = ECDSA.recover(digest, voucher.signature);
+		return signer;
+	}
+
+	constructor(string memory baseURI_, string memory contractURI_)
+		ERC1155(string(abi.encodePacked(baseURI_, "{id}")))
+		EIP712(SIGNING_DOMAIN, SIGNATURE_VERSION)
+	{
 		__Musixverse_init_unchained(baseURI_, contractURI_);
 	}
 
@@ -55,129 +85,61 @@ contract MusixverseFacet is MusixverseEternalStorage, ERC1155, Pausable, Modifie
 	// Overriding the uri function
 	function uri(uint256 mxvTokenId) public view virtual override returns (string memory) {
 		require(mxvTokenId > 0 && mxvTokenId <= s.mxvLatestTokenId.current(), "Token DNE");
-		return string(abi.encodePacked(s.baseURI, s.trackNFTs[s.tokens[mxvTokenId].trackId].metadataHash));
+		return string(abi.encodePacked(s.baseURI, s.mxvTokenHashes[mxvTokenId]));
 	}
 
-	// function _setTokenHash(uint256 _tokenId, string memory _tokenURIHash) internal virtual {
-	// 	s.mxvTokenHashes[_tokenId] = _tokenURIHash;
-	// }
+	function _setTokenHash(uint256 _tokenId, string memory _tokenURIHash) internal virtual {
+		s.mxvTokenHashes[_tokenId] = _tokenURIHash;
+	}
 
 	function unlockableContentUri(uint256 mxvTokenId) public view virtual returns (string memory) {
 		require(mxvTokenId > 0 && mxvTokenId <= s.mxvLatestTokenId.current(), "Token DNE");
 		// Require that nft owner is calling the function
 		require(ownerOf(mxvTokenId) == msg.sender, "Must be token owner to call this function");
-		return string(abi.encodePacked(s.baseURI, s.trackNFTs[s.tokens[mxvTokenId].trackId].unlockableContentHash));
+		return string(abi.encodePacked(s.baseURI, s.mxvUnlockableContentHashes[mxvTokenId]));
 	}
 
-	// function _setUnlockableContentHash(uint256 _tokenId, string memory _unlockableContentURIHash) internal virtual {
-	// 	s.mxvUnlockableContentHashes[_tokenId] = _unlockableContentURIHash;
-	// }
+	function _setUnlockableContentHash(uint256 _tokenId, string memory _unlockableContentURIHash) internal virtual {
+		s.mxvUnlockableContentHashes[_tokenId] = _unlockableContentURIHash;
+	}
 
 	function ownerOf(uint256 tokenId) public view returns (address) {
 		require(s.owners[tokenId] != address(0), "Token DNE");
 		return s.owners[tokenId];
 	}
 
-	// // Use lazy minting in a different way. Storing of track data is done when the track is created (Also store number of copies and keep a check when collector purchases). Minting is done each time whenever a buyer purchases an NFT. Emit event for each token created. This way, we can keep track of the number of tokens minted for each track.
-	// function mintTrackNFT(TrackNftCreationData calldata data) external virtual whenNotPaused nonReentrant {
-	// 	LibMusixverse.checkForMinting(data);
-
-	// 	// uint256[] memory _tokenIds = new uint256[](data.amount);
-	// 	// uint256[] memory _tokenAmounts = new uint256[](data.amount);
-
-	// 	// s.totalTracks.increment(1);
-	// 	// LibMusixverse.setRoyalties(s.totalTracks.current(), data.collaborators, data.percentageContributions, s.royalties);
-	// 	// s.trackNFTs[s.totalTracks.current()] = Track(
-	// 	// 	data.URIHash,
-	// 	// 	data.unlockableContentURIHash,
-	// 	// 	msg.sender,
-	// 	// 	data.resaleRoyaltyPercentage,
-	// 	// 	data.unlockTimestamp
-	// 	// );
-
-	// 	for (uint256 i = 0; i < data.amount; i++) {
-	// 		s.mxvLatestTokenId.increment(1);
-	// 		// _tokenIds[i] = s.mxvLatestTokenId.current();
-	// 		emit TokenCreated(msg.sender, s.totalTracks.current(), s.mxvLatestTokenId.current(), data.price, i + 1);
-	// 		// _tokenAmounts[i] = 1;
-
-	// 		// s.owners[s.mxvLatestTokenId.current()] = msg.sender;
-	// 		// s.tokens[s.mxvLatestTokenId.current()] = Token(s.totalTracks.current(), data.price, data.onSale, false);
-	// 	}
-
-	// 	// _mintBatch(msg.sender, _tokenIds, _tokenAmounts, "");
-
-	// 	// for (uint256 i = 0; i < data.amount; i++) {
-	// 	// 	emit TokenCreated(msg.sender, s.totalTracks.current(), _tokenIds[i], data.price, i + 1);
-	// 	// }
-	// 	emit TrackMinted(msg.sender, s.totalTracks.current(), s.mxvLatestTokenId.current(), data.price, data.URIHash);
-	// }
-
 	function mintTrackNFT(TrackNftCreationData calldata data) external virtual whenNotPaused nonReentrant {
 		LibMusixverse.checkForMinting(data);
-
 		uint256[] memory _tokenIds = new uint256[](data.amount);
 		uint256[] memory _tokenAmounts = new uint256[](data.amount);
-
-		s.totalTracks.increment(1);
-		LibMusixverse.setRoyalties(s.totalTracks.current(), data.collaborators, data.percentageContributions, s.royalties);
-		s.trackNFTs[s.totalTracks.current()] = Track(
-			data.URIHash,
-			data.unlockableContentURIHash,
-			msg.sender,
-			data.resaleRoyaltyPercentage,
-			data.unlockTimestamp
-		);
-
 		for (uint256 i = 0; i < data.amount; i++) {
 			s.mxvLatestTokenId.increment(1);
 			_tokenIds[i] = s.mxvLatestTokenId.current();
 			_tokenAmounts[i] = 1;
-
+			_setTokenHash(s.mxvLatestTokenId.current(), data.URIHash);
+			_setUnlockableContentHash(s.mxvLatestTokenId.current(), data.unlockableContentURIHash);
+			LibMusixverse.setRoyalties(s.mxvLatestTokenId.current(), data.collaborators, data.percentageContributions, s.royalties);
 			s.owners[s.mxvLatestTokenId.current()] = msg.sender;
-			s.tokens[s.mxvLatestTokenId.current()] = Token(s.totalTracks.current(), data.price, data.onSale, false);
+			s.trackNFTs[s.mxvLatestTokenId.current()] = Track(
+				data.price,
+				msg.sender,
+				data.resaleRoyaltyPercentage,
+				data.onSale,
+				false,
+				data.unlockTimestamp
+			);
 		}
-
 		_mintBatch(msg.sender, _tokenIds, _tokenAmounts, "");
-
+		s.totalTracks.increment(1);
 		for (uint256 i = 0; i < data.amount; i++) {
 			emit TokenCreated(msg.sender, s.totalTracks.current(), _tokenIds[i], data.price, i + 1);
 		}
 		emit TrackMinted(msg.sender, s.totalTracks.current(), s.mxvLatestTokenId.current(), data.price, data.URIHash);
 	}
 
-	// function mintTrackNFT(TrackNftCreationData calldata data) external virtual whenNotPaused nonReentrant {
-	// 	LibMusixverse.checkForMinting(data);
-	// 	uint256[] memory _tokenIds = new uint256[](data.amount);
-	// 	uint256[] memory _tokenAmounts = new uint256[](data.amount);
-	// 	for (uint256 i = 0; i < data.amount; i++) {
-	// 		s.mxvLatestTokenId.increment(1);
-	// 		_tokenIds[i] = s.mxvLatestTokenId.current();
-	// 		_tokenAmounts[i] = 1;
-	// 		_setTokenHash(s.mxvLatestTokenId.current(), data.URIHash);
-	// 		_setUnlockableContentHash(s.mxvLatestTokenId.current(), data.unlockableContentURIHash);
-	// 		LibMusixverse.setRoyalties(s.mxvLatestTokenId.current(), data.collaborators, data.percentageContributions, s.royalties);
-	// 		s.owners[s.mxvLatestTokenId.current()] = msg.sender;
-	// 		s.trackNFTs[s.mxvLatestTokenId.current()] = Track(
-	// 			data.price,
-	// 			msg.sender,
-	// 			data.resaleRoyaltyPercentage,
-	// 			data.onSale,
-	// 			false,
-	// 			data.unlockTimestamp
-	// 		);
-	// 	}
-	// 	_mintBatch(msg.sender, _tokenIds, _tokenAmounts, "");
-	// 	s.totalTracks.increment(1);
-	// 	for (uint256 i = 0; i < data.amount; i++) {
-	// 		emit TokenCreated(msg.sender, s.totalTracks.current(), _tokenIds[i], data.price, i + 1);
-	// 	}
-	// 	emit TrackMinted(msg.sender, s.totalTracks.current(), s.mxvLatestTokenId.current(), data.price, data.URIHash);
-	// }
-
 	function purchaseTrackNFT(uint256 tokenId) public payable whenNotPaused nonReentrant {
 		address _prevOwner = ownerOf(tokenId);
-		LibMusixverse.purchaseToken(tokenId, payable(address(0)), s.trackNFTs, s.tokens, s.mxvLatestTokenId);
+		LibMusixverse.purchaseToken(tokenId, payable(address(0)), s.trackNFTs, s.mxvLatestTokenId);
 		// Transfer ownership to buyer
 		_safeTransferFrom(_prevOwner, msg.sender, tokenId, 1, "");
 		s.owners[tokenId] = msg.sender;
@@ -188,7 +150,7 @@ contract MusixverseFacet is MusixverseEternalStorage, ERC1155, Pausable, Modifie
 
 	function purchaseReferredTrackNFT(uint256 tokenId, address payable referrer) public payable whenNotPaused nonReentrant {
 		address _prevOwner = ownerOf(tokenId);
-		LibMusixverse.purchaseToken(tokenId, referrer, s.trackNFTs, s.tokens, s.mxvLatestTokenId);
+		LibMusixverse.purchaseToken(tokenId, referrer, s.trackNFTs, s.mxvLatestTokenId);
 		// Transfer ownership to buyer
 		_safeTransferFrom(_prevOwner, msg.sender, tokenId, 1, "");
 		s.owners[tokenId] = msg.sender;
@@ -201,7 +163,7 @@ contract MusixverseFacet is MusixverseEternalStorage, ERC1155, Pausable, Modifie
 		(uint256 _oldPrice, uint256 _newPrice) = LibMusixverse.updateTokenPrice(
 			payable(s.PLATFORM_ADDRESS),
 			tokenId,
-			s.tokens,
+			s.trackNFTs,
 			newPrice,
 			s.mxvLatestTokenId
 		);
@@ -210,7 +172,7 @@ contract MusixverseFacet is MusixverseEternalStorage, ERC1155, Pausable, Modifie
 	}
 
 	function toggleOnSale(uint256 tokenId) public {
-		bool _onSale = LibMusixverse.toggleOnSaleAttribute(payable(s.PLATFORM_ADDRESS), tokenId, s.trackNFTs, s.tokens, s.mxvLatestTokenId);
+		bool _onSale = LibMusixverse.toggleOnSaleAttribute(payable(s.PLATFORM_ADDRESS), tokenId, s.trackNFTs, s.mxvLatestTokenId);
 		// Trigger an event
 		emit TokenOnSaleUpdated(msg.sender, tokenId, _onSale);
 	}
@@ -221,7 +183,7 @@ contract MusixverseFacet is MusixverseEternalStorage, ERC1155, Pausable, Modifie
 	// @info recipient - address of who should be sent the royalty payment
 	// @info percentage - the royalty payment percentage
 	function getRoyaltyInfo(uint256 tokenId) public view returns (RoyaltyInfo[] memory) {
-		return s.royalties[s.tokens[tokenId].trackId];
+		return s.royalties[tokenId];
 	}
 
 	function updateCommentOnToken(uint256 _tokenId, string memory _comment) public virtual nonReentrant {

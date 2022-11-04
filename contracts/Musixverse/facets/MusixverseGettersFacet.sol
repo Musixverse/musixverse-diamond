@@ -10,8 +10,8 @@ pragma solidity ^0.8.0;
 ████      ████  ████   ████      ████
 */
 
-import { Counters } from "@openzeppelin/contracts/utils/Counters.sol";
-import { MusixverseAppStorage, TrackNFT, RoyaltyInfo } from "../libraries/LibMusixverseAppStorage.sol";
+import { Counters } from "../libraries/LibCounters.sol";
+import { MusixverseAppStorage, Track, Token, RoyaltyInfo } from "../libraries/LibMusixverseAppStorage.sol";
 import { MusixverseEternalStorage } from "../common/MusixverseEternalStorage.sol";
 
 contract MusixverseGettersFacet is MusixverseEternalStorage {
@@ -51,14 +51,19 @@ contract MusixverseGettersFacet is MusixverseEternalStorage {
 		return s.totalTracks;
 	}
 
-	function trackNFTs(uint256 tokenId) external view returns (TrackNFT memory) {
+	function trackNFTs(uint256 tokenId) external view returns (Track memory) {
 		require(tokenId > 0 && tokenId <= s.mxvLatestTokenId.current(), "Token DNE");
-		return s.trackNFTs[tokenId];
+		return s.trackNFTs[s.tokens[tokenId].trackId];
+	}
+
+	function getToken(uint256 tokenId) external view returns (Token memory) {
+		require(tokenId > 0 && tokenId <= s.mxvLatestTokenId.current(), "Token DNE");
+		return s.tokens[tokenId];
 	}
 
 	function royalties(uint256 tokenId) external view returns (RoyaltyInfo[] memory) {
 		require(tokenId > 0 && tokenId <= s.mxvLatestTokenId.current(), "Token DNE");
-		return s.royalties[tokenId];
+		return s.royalties[s.tokens[tokenId].trackId];
 	}
 
 	function getCommentOnToken(uint256 tokenId) external view virtual returns (string memory) {

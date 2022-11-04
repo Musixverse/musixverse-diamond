@@ -22,15 +22,15 @@ contract Modifiers {
     |              Events               |
     |__________________________________*/
 
-	event TokenCreated(address creator, uint256 trackId, uint256 tokenId, uint256 price, uint256 localTokenId);
+	event TokenCreated(address indexed creator, uint256 indexed trackId, uint256 indexed tokenId, uint256 price, uint256 localTokenId);
 
-	event TrackMinted(address creator, uint256 trackId, uint256 maxTokenId, uint256 price, string URIHash);
+	event TrackMinted(address indexed creator, uint256 indexed trackId, uint256 maxTokenId, uint256 price, string indexed URIHash);
 
-	event TokenPurchased(uint256 tokenId, address referrer, address previousOwner, address newOwner, uint256 price);
+	event TokenPurchased(uint256 indexed tokenId, address indexed referrer, address previousOwner, address indexed newOwner, uint256 price);
 
-	event TokenPriceUpdated(address caller, uint256 tokenId, uint256 oldPrice, uint256 newPrice);
+	event TokenPriceUpdated(address indexed caller, uint256 indexed tokenId, uint256 oldPrice, uint256 newPrice);
 
-	event TokenOnSaleUpdated(address caller, uint256 tokenId, bool onSale);
+	event TokenOnSaleUpdated(address indexed caller, uint256 indexed tokenId, bool onSale);
 
-	event TokenCommentUpdated(address caller, uint256 tokenId, string previousComment, string newComment);
+	event TokenCommentUpdated(address indexed caller, uint256 indexed tokenId, string previousComment, string newComment);
 }

@@ -27,7 +27,7 @@ const mintTrack = async function (musixverseFacet, artist1) {
 };
 
 const mint3TokensOfTrack = async function (musixverseFacet, artist1, artist2) {
-	const numberOfCopies = 3;
+	const numberOfCopies = 80; // 80 working, 2500 working with tokenCreated event emitted, UNLIMITED (65535) with lazy minting voucher
 	const price = ethers.utils.parseEther("100");
 	const metadataURIHash = "Qmbijgmi1APqH2UaMVPkwoAKyNiBEHUjap54s3MAifKta6";
 	const unlockableContentURIHash = "QmZgB7PyESb9nZQSbTKPXwtk6YYmTFsvSM3qDX5Bxhisqp";
