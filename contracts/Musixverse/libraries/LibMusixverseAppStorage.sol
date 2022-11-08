@@ -36,6 +36,7 @@ struct Track {
 	address artistAddress;
 	uint16 resaleRoyaltyPercentage;
 	uint256 unlockTimestamp;
+	uint256 listingPrice;
 }
 
 struct Token {
