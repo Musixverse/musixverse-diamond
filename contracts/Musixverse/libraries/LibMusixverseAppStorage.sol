@@ -37,6 +37,8 @@ struct Track {
 	uint16 resaleRoyaltyPercentage;
 	uint256 unlockTimestamp;
 	uint256 listingPrice;
+	uint256 minTokenId;
+	uint256 maxTokenId;
 }
 
 struct Token {

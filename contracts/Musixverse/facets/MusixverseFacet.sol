@@ -71,69 +71,6 @@ contract MusixverseFacet is MusixverseEternalStorage, ERC1155, Pausable, Modifie
 		return s.owners[tokenId];
 	}
 
-	// function mintTrackNFT(TrackNftCreationData calldata data) external virtual whenNotPaused nonReentrant {
-	// 	LibMusixverse.checkForMinting(data);
-	// 	uint256[] memory _tokenIds = new uint256[](data.amount);
-	// 	uint256[] memory _tokenAmounts = new uint256[](data.amount);
-	// 	for (uint256 i = 0; i < data.amount; i++) {
-	// 		s.mxvLatestTokenId.increment(1);
-	// 		_tokenIds[i] = s.mxvLatestTokenId.current();
-	// 		_tokenAmounts[i] = 1;
-	// 		_setTokenHash(s.mxvLatestTokenId.current(), data.URIHash);
-	// 		_setUnlockableContentHash(s.mxvLatestTokenId.current(), data.unlockableContentURIHash);
-	// 		LibMusixverse.setRoyalties(s.mxvLatestTokenId.current(), data.collaborators, data.percentageContributions, s.royalties);
-	// 		s.owners[s.mxvLatestTokenId.current()] = msg.sender;
-	// 		s.trackNFTs[s.mxvLatestTokenId.current()] = Track(
-	// 			data.price,
-	// 			msg.sender,
-	// 			data.resaleRoyaltyPercentage,
-	// 			data.onSale,
-	// 			false,
-	// 			data.unlockTimestamp
-	// 		);
-	// 	}
-	// 	_mintBatch(msg.sender, _tokenIds, _tokenAmounts, "");
-	// 	s.totalTracks.increment(1);
-	// 	for (uint256 i = 0; i < data.amount; i++) {
-	// 		emit TokenCreated(msg.sender, s.totalTracks.current(), _tokenIds[i], data.price, i + 1);
-	// 	}
-	// 	emit TrackMinted(msg.sender, s.totalTracks.current(), s.mxvLatestTokenId.current(), data.price, data.URIHash);
-	// }
-
-	// function mintTrackNFT(TrackNftCreationData calldata data) external virtual whenNotPaused nonReentrant {
-	// 	LibMusixverse.checkForMinting(data);
-
-	// 	uint256[] memory _tokenIds = new uint256[](data.amount);
-	// 	uint256[] memory _tokenAmounts = new uint256[](data.amount);
-
-	// 	s.totalTracks.increment(1);
-	// 	LibMusixverse.setRoyalties(s.totalTracks.current(), data.collaborators, data.percentageContributions, s.royalties);
-	// 	s.trackNFTs[s.totalTracks.current()] = Track(
-	// 		data.URIHash,
-	// 		data.unlockableContentURIHash,
-	// 		msg.sender,
-	// 		data.resaleRoyaltyPercentage,
-	// 		data.unlockTimestamp
-	// 	);
-
-	// 	for (uint256 i = 0; i < data.amount; i++) {
-	// 		s.mxvLatestTokenId.increment(1);
-	// 		_tokenIds[i] = s.mxvLatestTokenId.current();
-	// 		_tokenAmounts[i] = 1;
-
-	// 		s.owners[s.mxvLatestTokenId.current()] = msg.sender;
-	// 		s.tokens[s.mxvLatestTokenId.current()] = Token(s.totalTracks.current(), data.price, data.onSale, false);
-	// 	}
-
-	// 	_mintBatch(msg.sender, _tokenIds, _tokenAmounts, "");
-
-	// 	for (uint256 i = 0; i < data.amount; i++) {
-	// 		emit TokenCreated(msg.sender, s.totalTracks.current(), _tokenIds[i], data.price, i + 1);
-	// 	}
-	// 	emit TrackMinted(msg.sender, s.totalTracks.current(), s.mxvLatestTokenId.current(), data.price, data.URIHash);
-	// }
-
-	// Use lazy minting in a different way. Storing of track data is done when the track is created (Also store number of copies and keep a check when collector purchases). Minting is done each time whenever a buyer purchases an NFT. Emit event for each token created. This way, we can keep track of the number of tokens minted for each track.
 	function mintTrackNFT(TrackNftCreationData calldata data) external virtual whenNotPaused nonReentrant {
 		LibMusixverse.checkForMinting(data);
 
@@ -145,7 +82,9 @@ contract MusixverseFacet is MusixverseEternalStorage, ERC1155, Pausable, Modifie
 			msg.sender,
 			data.resaleRoyaltyPercentage,
 			data.unlockTimestamp,
-			data.price
+			data.price,
+			s.mxvLatestTokenId.current() + 1,
+			s.mxvLatestTokenId.current() + data.amount
 		);
 
 		for (uint256 i = 0; i < data.amount; i++) {
@@ -162,10 +101,12 @@ contract MusixverseFacet is MusixverseEternalStorage, ERC1155, Pausable, Modifie
 	) public payable whenNotPaused nonReentrant {
 		address _prevOwner = ownerOf(tokenId);
 
+		Track memory _trackNFT = s.trackNFTs[trackId];
+		require(tokenId >= _trackNFT.minTokenId && tokenId <= _trackNFT.maxTokenId, "tokenId mismatch with trackId");
 		if (_prevOwner == address(0) && s.tokens[tokenId].trackId == 0) {
-			_mint(s.trackNFTs[trackId].artistAddress, tokenId, 1, "");
-			s.owners[tokenId] = s.trackNFTs[trackId].artistAddress;
-			s.tokens[tokenId] = Token(trackId, s.trackNFTs[trackId].listingPrice, true, false);
+			_mint(_trackNFT.artistAddress, tokenId, 1, "");
+			s.owners[tokenId] = _trackNFT.artistAddress;
+			s.tokens[tokenId] = Token(trackId, _trackNFT.listingPrice, true, false);
 		}
 
 		address _reffererAddress = address(0);
