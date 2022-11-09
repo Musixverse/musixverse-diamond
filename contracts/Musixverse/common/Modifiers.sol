@@ -33,4 +33,6 @@ contract Modifiers {
 	event TokenOnSaleUpdated(address indexed caller, uint256 indexed tokenId, bool onSale);
 
 	event TokenCommentUpdated(address indexed caller, uint256 indexed tokenId, string previousComment, string newComment);
+
+	event ArtistVerified(address indexed caller, address indexed artistAddress, string indexed username);
 }

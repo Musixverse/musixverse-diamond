@@ -91,8 +91,16 @@ describe("Musixverse Tests", function () {
 	});
 
 	describe("Mint track NFT", function () {
+		it("Should not be able to mint an NFT as MINTER_ROLE is not granted", async function () {
+			const [owner, addr1] = await ethers.getSigners();
+
+			expect(mintTrack(musixverseFacet, addr1)).to.be.revertedWith("Lib Musixverse: Caller does not have minter role");
+		});
+
 		it("Should mint an NFT", async function () {
 			const [owner, addr1] = await ethers.getSigners();
+			await musixverseSettersFacet.grantAdminRole(owner.address);
+			await musixverseSettersFacet.verifyArtistAndGrantMinterRole(addr1.address, "sparsh");
 			// tokenId: 1, trackId: 1
 			await mintTrack(musixverseFacet, addr1);
 
@@ -138,7 +146,7 @@ describe("Musixverse Tests", function () {
 				.connect(addr2)
 				.purchaseTrackNFT(_tokenId, _trackId, ethers.constants.AddressZero, { value: ethers.utils.parseEther("100"), gasLimit: 2000000 });
 
-			const royalties = await musixverseFacet.getRoyaltyInfo(_tokenId);
+			const royalties = await musixverseGettersFacet.getRoyaltyInfo(_tokenId);
 			expect((await royalties[0].recipient).toString()).to.equal(addr1.address);
 			expect((await royalties[1].recipient).toString()).to.equal(addr2.address);
 			expect((await royalties[0].percentage).toString()).to.equal("80");
@@ -319,6 +327,7 @@ describe("Musixverse Tests", function () {
 			console.log("\tMinting 3 copies of NFT...");
 
 			// addr5 and addr6 are the collaborators. addr5 is the minter
+			await musixverseSettersFacet.verifyArtistAndGrantMinterRole(addr5.address, "shivam");
 			// tokenId: 19, trackId: 9
 			await mint3TokensOfTrack(musixverseFacet, addr5, addr6);
 
@@ -398,7 +407,7 @@ describe("Musixverse Tests", function () {
 				.purchaseTrackNFT(_tokenId, _trackId, ethers.constants.AddressZero, { value: ethers.utils.parseEther("100"), gasLimit: 2000000 });
 
 			// Success: Current owner can access the unlockable content URI
-			const unlockableContentURIHash = await musixverseFacet.connect(addr2).unlockableContentUri(_tokenId);
+			const unlockableContentURIHash = await musixverseGettersFacet.connect(addr2).unlockableContentUri(_tokenId);
 			expect(unlockableContentURIHash).to.equal((await musixverseGettersFacet.baseURI()) + "QmTUE2Jwg9aDEQzRZZB2Bw44PDLMSv7URBNZ1ohwKm5RDj");
 		});
 
@@ -407,8 +416,12 @@ describe("Musixverse Tests", function () {
 
 			// Failure: Tries to access unlockable content URI of a track NFT that you don't own
 			const _tokenId = 1;
-			expect(musixverseFacet.connect(addr2).unlockableContentUri(_tokenId)).to.be.revertedWith("Must be token owner to call this function");
-			expect(musixverseFacet.connect(addr3).unlockableContentUri(_tokenId)).to.be.revertedWith("Must be token owner to call this function");
+			expect(musixverseGettersFacet.connect(addr2).unlockableContentUri(_tokenId)).to.be.revertedWith(
+				"Must be token owner to call this function"
+			);
+			expect(musixverseGettersFacet.connect(addr3).unlockableContentUri(_tokenId)).to.be.revertedWith(
+				"Must be token owner to call this function"
+			);
 		});
 	});
 

@@ -13,6 +13,7 @@ pragma solidity ^0.8.0;
 import { Counters } from "../libraries/LibCounters.sol";
 import { MusixverseAppStorage, Track, Token, RoyaltyInfo } from "../libraries/LibMusixverseAppStorage.sol";
 import { MusixverseEternalStorage } from "../common/MusixverseEternalStorage.sol";
+import { MusixverseFacet } from "./MusixverseFacet.sol";
 
 contract MusixverseGettersFacet is MusixverseEternalStorage {
 	using Counters for Counters.Counter;
@@ -66,13 +67,25 @@ contract MusixverseGettersFacet is MusixverseEternalStorage {
 		return s.tokens[tokenId];
 	}
 
-	function royalties(uint256 tokenId) external view returns (RoyaltyInfo[] memory) {
-		require(tokenId > 0 && tokenId <= s.mxvLatestTokenId.current(), "Token DNE");
-		return s.royalties[s.tokens[tokenId].trackId];
-	}
-
 	function getCommentOnToken(uint256 tokenId) external view virtual returns (string memory) {
 		require(tokenId > 0 && tokenId <= s.mxvLatestTokenId.current(), "Token DNE");
 		return s.commentWall[tokenId];
+	}
+
+	function unlockableContentUri(uint256 mxvTokenId) public view virtual returns (string memory) {
+		require(mxvTokenId > 0 && mxvTokenId <= s.mxvLatestTokenId.current(), "Token DNE");
+		// Require that nft owner is calling the function
+		require(MusixverseFacet(s.PLATFORM_ADDRESS).ownerOf(mxvTokenId) == msg.sender, "Must be token owner to call this function");
+		return string(abi.encodePacked(s.baseURI, s.trackNFTs[s.tokens[mxvTokenId].trackId].unlockableContentHash));
+	}
+
+	// @notice Called with the token id to determine how much royalty is owed and to whom
+	// @param tokenId - the NFT asset queried for royalty information
+	// @return RoyaltyInfo[] - an array of type RoyaltyInfo having objects with the following fields: recipient, percentage
+	// @info recipient - address of who should be sent the royalty payment
+	// @info percentage - the royalty payment percentage
+	function getRoyaltyInfo(uint256 tokenId) public view virtual returns (RoyaltyInfo[] memory) {
+		require(tokenId > 0 && tokenId <= s.mxvLatestTokenId.current(), "Token DNE");
+		return s.royalties[s.tokens[tokenId].trackId];
 	}
 }

@@ -33,21 +33,13 @@ interface IMusixverseFacet {
 
 	function toggleOnSale(uint256 tokenId) external;
 
+	function updateCommentOnToken(uint256 _tokenId, string memory _comment) external;
+
 	/***********************************|
     |              Helpers              |
     |__________________________________*/
 
-	function baseURI() external view returns (string memory);
-
-	function contractURI() external view returns (string memory);
-
 	function uri(uint256 mxvTokenId) external view returns (string memory);
 
 	function ownerOf(uint256 tokenId) external view returns (address);
-
-	/***********************************|
-    |              Royalty              |
-    |__________________________________*/
-
-	function getRoyaltyInfo(uint256 tokenId) external view returns (RoyaltyInfo[] memory);
 }

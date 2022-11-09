@@ -193,7 +193,7 @@ async function deployMusixverseSettersFacet() {
 		}
 	});
 
-	const selectors = getSelectors(musixverseSettersFacet);
+	const selectors = getSelectors(musixverseSettersFacet).remove(["supportsInterface(bytes4)"]);
 	const diamondCut = await ethers.getContractAt("IDiamondCut", musixverseDiamondAddress);
 	const tx = await diamondCut.diamondCut(
 		[

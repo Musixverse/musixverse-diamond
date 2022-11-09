@@ -62,6 +62,10 @@ struct MusixverseAppStorage {
 	address payable PLATFORM_ADDRESS;
 	// Cut percentage relative to PLATFORM_FEE_PERCENTAGE
 	uint8 REFERRAL_CUT;
+	// Role identifier for the admin role
+	bytes32 ADMIN_ROLE;
+	// Role identifier for the minter role
+	bytes32 MINTER_ROLE;
 	Counters.Counter mxvLatestTokenId;
 	Counters.Counter totalTracks;
 	// Mapping from track ID to track data

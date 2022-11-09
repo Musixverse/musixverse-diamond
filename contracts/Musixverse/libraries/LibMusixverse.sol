@@ -15,12 +15,17 @@ import { Counters } from "./LibCounters.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { LibMusixverseAppStorage, MusixverseAppStorage, TrackNftCreationData, Track, Token, RoyaltyInfo } from "./LibMusixverseAppStorage.sol";
 import { MusixverseFacet } from "../facets/MusixverseFacet.sol";
+import { MusixverseGettersFacet } from "../facets/MusixverseGettersFacet.sol";
+import { MusixverseSettersFacet } from "../facets/MusixverseSettersFacet.sol";
 
 library LibMusixverse {
 	using SafeMath for uint256;
 	using Counters for Counters.Counter;
 
-	function checkForMinting(TrackNftCreationData calldata data) public pure {
+	function checkForMinting(TrackNftCreationData calldata data) public view {
+		MusixverseAppStorage storage s = LibMusixverseAppStorage.diamondStorage();
+		// Check that the calling account has the minxter role
+		require(MusixverseSettersFacet(s.PLATFORM_ADDRESS).hasRole(s.MINTER_ROLE, msg.sender), "Lib Musixverse: Caller does not have minter role");
 		require(data.amount > 0, "No tokens to mint");
 		require(data.price > 0, "Price must be greater than 0");
 		require(bytes(data.URIHash).length != 0, "URIHash must be present");
@@ -146,7 +151,7 @@ library LibMusixverse {
 		uint256 tokenId,
 		uint256 royaltyAmount
 	) internal {
-		RoyaltyInfo[] memory _royalties = MusixverseFacet(PLATFORM_ADDRESS).getRoyaltyInfo(tokenId);
+		RoyaltyInfo[] memory _royalties = MusixverseGettersFacet(PLATFORM_ADDRESS).getRoyaltyInfo(tokenId);
 		for (uint256 i = 0; i < _royalties.length; i++) {
 			uint256 _value = (royaltyAmount).mul(_royalties[i].percentage).div(100);
 			payable(_royalties[i].recipient).transfer(_value);
