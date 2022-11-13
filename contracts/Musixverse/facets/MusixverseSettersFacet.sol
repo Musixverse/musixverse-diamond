@@ -45,7 +45,7 @@ contract MusixverseSettersFacet is MusixverseEternalStorage, Modifiers, AccessCo
 		// Grant the minter role to the verified artist
 		_setupRole(s.MINTER_ROLE, artistAddress);
 		// Trigger an event
-		emit ArtistVerified(msg.sender, artistAddress, username);
+		emit ArtistVerified(msg.sender, artistAddress, username, username);
 	}
 
 	function grantAdminRole(address adminAddress) public virtual onlyOwner {

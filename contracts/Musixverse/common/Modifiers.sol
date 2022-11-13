@@ -24,7 +24,14 @@ contract Modifiers {
 
 	event TokenCreated(address indexed creator, uint256 indexed trackId, uint256 indexed tokenId, uint256 price, uint256 localTokenId);
 
-	event TrackMinted(address indexed creator, uint256 indexed trackId, uint256 maxTokenId, uint256 price, string indexed URIHash);
+	event TrackMinted(
+		address indexed creator,
+		uint256 indexed trackId,
+		uint256 maxTokenId,
+		uint256 price,
+		string URIHash,
+		string indexed indexedURIHash
+	);
 
 	event TokenPurchased(uint256 indexed tokenId, address indexed referrer, address previousOwner, address indexed newOwner, uint256 price);
 
@@ -34,5 +41,5 @@ contract Modifiers {
 
 	event TokenCommentUpdated(address indexed caller, uint256 indexed tokenId, string previousComment, string newComment);
 
-	event ArtistVerified(address indexed caller, address indexed artistAddress, string indexed username);
+	event ArtistVerified(address indexed caller, address indexed artistAddress, string username, string indexed indexedUsername);
 }

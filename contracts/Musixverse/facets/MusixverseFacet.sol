@@ -86,7 +86,7 @@ contract MusixverseFacet is MusixverseEternalStorage, ERC1155, Pausable, Modifie
 			s.mxvLatestTokenId.increment(1);
 			emit TokenCreated(msg.sender, s.totalTracks.current(), s.mxvLatestTokenId.current(), data.price, i + 1);
 		}
-		emit TrackMinted(msg.sender, s.totalTracks.current(), s.mxvLatestTokenId.current(), data.price, data.URIHash);
+		emit TrackMinted(msg.sender, s.totalTracks.current(), s.mxvLatestTokenId.current(), data.price, data.URIHash, data.URIHash);
 	}
 
 	function purchaseTrackNFT(

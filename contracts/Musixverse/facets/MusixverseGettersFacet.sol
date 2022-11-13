@@ -52,16 +52,6 @@ contract MusixverseGettersFacet is MusixverseEternalStorage {
 		return s.totalTracks;
 	}
 
-	function trackNFTs(uint256 tokenId) external view returns (Track memory) {
-		require(tokenId > 0 && tokenId <= s.mxvLatestTokenId.current(), "Token DNE");
-		return s.trackNFTs[s.tokens[tokenId].trackId];
-	}
-
-	function getTrack(uint256 trackId) external view returns (Track memory) {
-		require(trackId > 0 && trackId <= s.totalTracks.current(), "Track DNE");
-		return s.trackNFTs[trackId];
-	}
-
 	function getToken(uint256 tokenId) external view returns (Token memory) {
 		require(tokenId > 0 && tokenId <= s.mxvLatestTokenId.current(), "Token DNE");
 		return s.tokens[tokenId];
