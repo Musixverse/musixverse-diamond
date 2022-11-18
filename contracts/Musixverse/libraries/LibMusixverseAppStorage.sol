@@ -53,6 +53,13 @@ struct RoyaltyInfo {
 	uint256 percentage;
 }
 
+struct TrackNftPurchaseValues {
+	uint256 referralFee;
+	uint256 platformFee;
+	uint256 royaltyAmount;
+	uint256 value;
+}
+
 struct MusixverseAppStorage {
 	string name;
 	string symbol;

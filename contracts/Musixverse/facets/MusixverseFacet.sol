@@ -15,7 +15,7 @@ import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { MusixverseEternalStorage } from "../common/MusixverseEternalStorage.sol";
-import { TrackNftCreationData, Track, Token, RoyaltyInfo } from "../libraries/LibMusixverseAppStorage.sol";
+import { TrackNftCreationData, TrackNftPurchaseValues, Track, Token, RoyaltyInfo } from "../libraries/LibMusixverseAppStorage.sol";
 import { LibDiamond } from "../../shared/libraries/LibDiamond.sol";
 import { LibMusixverse } from "../libraries/LibMusixverse.sol";
 import { Counters } from "../libraries/LibCounters.sol";
@@ -86,6 +86,7 @@ contract MusixverseFacet is MusixverseEternalStorage, ERC1155, Pausable, Modifie
 			s.mxvLatestTokenId.increment(1);
 			emit TokenCreated(msg.sender, s.totalTracks.current(), s.mxvLatestTokenId.current(), data.price, i + 1);
 		}
+		// Trigger an event
 		emit TrackMinted(msg.sender, s.totalTracks.current(), s.mxvLatestTokenId.current(), data.price, data.URIHash, data.URIHash);
 	}
 
@@ -112,12 +113,30 @@ contract MusixverseFacet is MusixverseEternalStorage, ERC1155, Pausable, Modifie
 		}
 		_prevOwner = ownerOf(tokenId);
 
-		LibMusixverse.purchaseToken(tokenId, payable(_reffererAddress), s.trackNFTs, s.tokens, s.mxvLatestTokenId);
+		// Distribute funds
+		TrackNftPurchaseValues memory _purchaseValues = LibMusixverse.purchaseToken(
+			tokenId,
+			payable(_reffererAddress),
+			s.trackNFTs,
+			s.tokens,
+			s.mxvLatestTokenId
+		);
 		// Transfer ownership to buyer
 		_safeTransferFrom(_prevOwner, msg.sender, tokenId, 1, "");
 		s.owners[tokenId] = msg.sender;
+
 		// Trigger an event
-		emit TokenPurchased(tokenId, _reffererAddress, _prevOwner, msg.sender, msg.value);
+		emit TokenPurchased(
+			tokenId,
+			_reffererAddress,
+			_purchaseValues.referralFee,
+			_purchaseValues.platformFee,
+			_purchaseValues.royaltyAmount,
+			_prevOwner,
+			_purchaseValues.value,
+			msg.sender,
+			msg.value
+		);
 		toggleOnSale(tokenId);
 	}
 

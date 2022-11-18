@@ -33,7 +33,17 @@ contract Modifiers {
 		string indexed indexedURIHash
 	);
 
-	event TokenPurchased(uint256 indexed tokenId, address indexed referrer, address previousOwner, address indexed newOwner, uint256 price);
+	event TokenPurchased(
+		uint256 indexed tokenId,
+		address indexed referrer,
+		uint256 referralFee,
+		uint256 platformFee,
+		uint256 royaltyAmount,
+		address previousOwner,
+		uint256 valueToPreviousOwner,
+		address indexed newOwner,
+		uint256 price
+	);
 
 	event TokenPriceUpdated(address indexed caller, uint256 indexed tokenId, uint256 oldPrice, uint256 newPrice);
 
