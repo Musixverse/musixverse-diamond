@@ -106,7 +106,7 @@ async function deployMusixverseFacet() {
 			LibMusixverse: libMXV.address,
 		},
 	});
-	const musixverseFacet = await MusixverseFacet.deploy("https://ipfs.moralis.io:2053/ipfs/", "https://www.musixverse.com/contract-metadata-uri");
+	const musixverseFacet = await MusixverseFacet.deploy("https://gateway.musixverse.com/ipfs/", "https://www.musixverse.com/contract-metadata-uri");
 	await musixverseFacet.deployed();
 	console.log(`\tMusixverseFacet deployed: ${musixverseFacet.address}`);
 	diamondAddressWriteToFile = `const MUSIXVERSE_FACET_ADDRESS = "${musixverseFacet.address}";\n`;
@@ -121,7 +121,7 @@ async function deployMusixverseFacet() {
 
 	const diamondCut = await ethers.getContractAt("IDiamondCut", musixverseDiamondAddress);
 	const functionCall = musixverseFacet.interface.encodeFunctionData("__Musixverse_init_unchained", [
-		"https://ipfs.moralis.io:2053/ipfs/",
+		"https://gateway.musixverse.com/ipfs/",
 		"https://www.musixverse.com/contract-metadata-uri",
 	]);
 	const tx = await diamondCut.diamondCut(
