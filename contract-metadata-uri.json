@@ -1,0 +1,8 @@
+{
+  "name": "Musixverse",
+  "description": "Musixverse is a Music NFT marketplace that will bring Artists and Fans together like never before and unlock novel models of communications and commerce.",
+  "image": "https://gateway.musixverse.com/ipfs/QmW8S4HHCFVupd2SzBCaWmRgddNxNTD6rcBFKdPB2DXuYe",
+  "external_link": "https://www.musixverse.com",
+  "seller_fee_basis_points": 100,
+  "fee_recipient": "0xFB81FC5524D012ab0e7B06553877Eb402f8D2775"
+}
